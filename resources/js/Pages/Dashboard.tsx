@@ -1,4 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import PageHero from '@/Components/PageHero';
+import StatCard from '@/Components/StatCard';
 import { Head, Link, usePage } from '@inertiajs/react';
 import type { PageProps } from '@/types';
 
@@ -11,8 +13,6 @@ interface AssessmentRow {
     classroom: { id: number; name: string };
     subject: { id: number; name: string; code: string };
     teacher?: { id: number; name: string };
-    submitted_at?: string;
-    updated_at?: string;
 }
 
 interface AdminStats {
@@ -48,299 +48,261 @@ const STATE_LABELS: Record<string, string> = {
 };
 
 const STATE_BADGE: Record<string, string> = {
-    draft:     'bg-surface-container text-on-surface-variant',
-    submitted: 'bg-amber-100 text-amber-800',
-    verified:  'bg-blue-100 text-blue-800',
+    draft:     'bg-surface-container-high text-on-surface-variant',
+    submitted: 'bg-tertiary-fixed text-on-tertiary-fixed-variant',
+    verified:  'bg-secondary-container text-on-secondary-container',
     rejected:  'bg-error-container text-on-error-container',
-    published: 'bg-primary-fixed text-primary',
+    published: 'bg-primary/10 text-primary',
+};
+
+const STATE_DOT: Record<string, string> = {
+    draft:     'bg-outline',
+    submitted: 'bg-tertiary',
+    verified:  'bg-secondary',
+    rejected:  'bg-error',
+    published: 'bg-primary',
 };
 
 // ── REUSABLE UI ────────────────────────────────────────────────────────────
-function Section({
-    title,
-    action,
-    children,
-}: {
+function Card({ title, icon, children, action }: {
     title: string;
+    icon?: string;
     action?: React.ReactNode;
     children: React.ReactNode;
 }) {
     return (
-        <section className="space-y-md">
-            <div className="flex items-center justify-between">
-                <h3 className="text-label-caps font-label-caps uppercase tracking-wider text-on-surface-variant">
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
+            <div className="flex items-center justify-between border-b border-outline-variant p-6">
+                <h3 className="flex items-center gap-2 text-headline-md text-on-surface">
+                    {icon && <span className="material-symbols-outlined text-primary">{icon}</span>}
                     {title}
                 </h3>
                 {action}
             </div>
-            {children}
-        </section>
-    );
-}
-
-function StatCard({
-    label,
-    value,
-    icon,
-    accent = 'primary',
-}: {
-    label: string;
-    value: number;
-    icon?: string;
-    accent?: 'primary' | 'amber' | 'blue' | 'error' | 'neutral';
-}) {
-    const accentStyles: Record<string, string> = {
-        primary: 'text-primary',
-        amber:   'text-amber-600',
-        blue:    'text-blue-600',
-        error:   'text-error',
-        neutral: 'text-on-surface-variant',
-    };
-
-    return (
-        <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-lg shadow-sm transition-shadow hover:shadow-md">
-            <div className="flex items-start justify-between">
-                <div>
-                    <p className="text-label-caps font-label-caps uppercase tracking-wider text-on-surface-variant">
-                        {label}
-                    </p>
-                    <p className="mt-xs text-h1 font-h1 text-on-surface">{value}</p>
-                </div>
-                {icon && (
-                    <span className={`material-symbols-outlined text-[28px] ${accentStyles[accent]}`}>
-                        {icon}
-                    </span>
-                )}
-            </div>
+            <div className="p-6">{children}</div>
         </div>
     );
 }
 
 function StateBadge({ state }: { state: string }) {
     return (
-        <span
-            className={`inline-flex rounded-full px-sm py-0.5 text-label-caps font-label-caps font-medium ${
-                STATE_BADGE[state] ?? 'bg-surface-container text-on-surface-variant'
-            }`}
-        >
+        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-label-caps ${STATE_BADGE[state] ?? ''}`}>
             {STATE_LABELS[state] ?? state}
         </span>
     );
 }
 
-function AssessmentTable({
-    rows,
-    showTeacher = false,
-}: {
-    rows: AssessmentRow[];
-    showTeacher?: boolean;
-}) {
+function AssessmentTable({ rows, showTeacher = false }: { rows: AssessmentRow[]; showTeacher?: boolean }) {
     if (!rows.length) {
         return (
-            <div className="rounded-lg border border-outline-variant bg-surface-container-lowest py-xl text-center">
-                <span className="material-symbols-outlined text-[40px] text-on-surface-variant/40">
-                    inbox
-                </span>
-                <p className="mt-xs text-body-sm font-body-sm text-on-surface-variant">
-                    Tidak ada data.
-                </p>
+            <div className="rounded-lg border border-dashed border-outline-variant py-12 text-center">
+                <span className="material-symbols-outlined text-[40px] text-on-surface-variant/40">inbox</span>
+                <p className="mt-2 text-body-sm text-on-surface-variant">Belum ada data.</p>
             </div>
         );
     }
 
     return (
-        <div className="overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-sm">
-            <div className="overflow-x-auto">
-                <table className="min-w-full">
-                    <thead className="bg-surface-container-low">
-                        <tr>
-                            <Th>Kelas</Th>
-                            <Th>Mata Pelajaran</Th>
-                            <Th>Periode</Th>
-                            {showTeacher && <Th>Guru</Th>}
-                            <Th>Status</Th>
-                            <Th />
+        <div className="overflow-x-auto">
+            <table className="w-full text-left">
+                <thead className="bg-surface-container-low">
+                    <tr>
+                        <Th>Kelas</Th>
+                        <Th>Mata Pelajaran</Th>
+                        <Th>Periode</Th>
+                        {showTeacher && <Th>Guru</Th>}
+                        <Th>Status</Th>
+                        <Th />
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-outline-variant">
+                    {rows.map((row) => (
+                        <tr key={row.id} className="transition-colors hover:bg-surface-container-low/50">
+                            <Td className="font-semibold text-on-surface">{row.classroom.name}</Td>
+                            <Td>
+                                <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                                    {row.subject.code}
+                                </span>{' '}
+                                <span className="text-on-surface-variant">{row.subject.name}</span>
+                            </Td>
+                            <Td className="text-on-surface-variant">{row.academic_year} · Sem {row.semester}</Td>
+                            {showTeacher && <Td className="text-on-surface-variant">{row.teacher?.name ?? '—'}</Td>}
+                            <Td><StateBadge state={row.state} /></Td>
+                            <Td>
+                                <Link
+                                    href={`/assessments/${row.id}`}
+                                    className="inline-flex items-center gap-1 text-button font-semibold text-primary hover:underline"
+                                >
+                                    Detail
+                                    <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+                                </Link>
+                            </Td>
                         </tr>
-                    </thead>
-                    <tbody className="divide-y divide-outline-variant">
-                        {rows.map((row) => (
-                            <tr key={row.id} className="transition-colors hover:bg-surface-container-low">
-                                <Td className="font-medium text-on-surface">{row.classroom.name}</Td>
-                                <Td className="text-on-surface-variant">
-                                    <span className="font-mono text-xs text-primary">[{row.subject.code}]</span>{' '}
-                                    {row.subject.name}
-                                </Td>
-                                <Td className="text-on-surface-variant">
-                                    {row.academic_year} / Sem {row.semester}
-                                </Td>
-                                {showTeacher && <Td className="text-on-surface-variant">{row.teacher?.name ?? '—'}</Td>}
-                                <Td>
-                                    <StateBadge state={row.state} />
-                                </Td>
-                                <Td>
-                                    <Link
-                                        href={`/assessments/${row.id}`}
-                                        className="inline-flex items-center gap-1 text-button font-button text-primary hover:underline"
-                                    >
-                                        Detail
-                                        <span className="material-symbols-outlined text-[14px]">
-                                            arrow_forward
-                                        </span>
-                                    </Link>
-                                </Td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
+                    ))}
+                </tbody>
+            </table>
         </div>
     );
 }
 
 function Th({ children }: { children?: React.ReactNode }) {
-    return (
-        <th className="px-md py-sm text-left text-label-caps font-label-caps uppercase tracking-wider text-on-surface-variant">
-            {children}
-        </th>
-    );
+    return <th className="px-4 py-3 text-label-caps uppercase text-on-surface-variant">{children}</th>;
 }
 
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-    return <td className={`px-md py-sm text-body-sm font-body-sm ${className}`}>{children}</td>;
-}
-
-function Banner({
-    icon,
-    children,
-    tone = 'info',
-}: {
-    icon: string;
-    children: React.ReactNode;
-    tone?: 'info' | 'warning';
-}) {
-    const styles = tone === 'warning'
-        ? 'border-amber-200 bg-amber-50 text-amber-800'
-        : 'border-outline-variant bg-surface-container-low text-on-surface-variant';
-    return (
-        <div className={`flex items-center gap-sm rounded-lg border px-md py-sm ${styles}`}>
-            <span className="material-symbols-outlined text-[20px]">{icon}</span>
-            <span className="text-body-sm font-body-sm">{children}</span>
-        </div>
-    );
+    return <td className={`px-4 py-3 text-body-sm ${className}`}>{children}</td>;
 }
 
 function ViewAllLink({ href }: { href: string }) {
     return (
-        <Link
-            href={href}
-            className="inline-flex items-center gap-1 text-button font-button text-primary hover:underline"
-        >
+        <Link href={href} className="inline-flex items-center gap-1 text-button font-semibold text-primary hover:underline">
             Lihat semua
-            <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
         </Link>
     );
 }
 
-// ── ROLE DASHBOARDS ────────────────────────────────────────────────────────
-function AdminDashboard({ stats }: { stats: AdminStats }) {
+function StateDistribution({ counts }: { counts: Record<string, number> }) {
     return (
-        <div className="space-y-xl">
-            <Section title="Master Data">
-                <div className="grid gap-md sm:grid-cols-2 lg:grid-cols-4">
-                    <StatCard label="Kelas"          value={stats.totals.classrooms}  icon="class"        accent="primary" />
-                    <StatCard label="Santri"         value={stats.totals.students}    icon="groups"       accent="blue" />
-                    <StatCard label="Mata Pelajaran" value={stats.totals.subjects}    icon="menu_book"    accent="neutral" />
-                    <StatCard label="Total Penilaian" value={stats.totals.assessments} icon="assignment" accent="primary" />
+        <div className="space-y-3">
+            {(['draft', 'submitted', 'verified', 'rejected', 'published'] as const).map((s) => (
+                <div
+                    key={s}
+                    className="flex items-center justify-between rounded-lg bg-surface-container-low p-3 transition-colors hover:bg-surface-container"
+                >
+                    <div className="flex items-center gap-3">
+                        <span className={`h-3 w-3 rounded-full ${STATE_DOT[s]}`} />
+                        <span className="text-body-base font-medium text-on-surface">{STATE_LABELS[s]}</span>
+                    </div>
+                    <span className="font-bold text-on-surface">{counts[s] ?? 0}</span>
                 </div>
-            </Section>
-
-            <Section title="Status Penilaian">
-                <div className="grid gap-md sm:grid-cols-2 lg:grid-cols-5">
-                    <StatCard label="Draft"         value={stats.by_state.draft     ?? 0} accent="neutral" />
-                    <StatCard label="Diajukan"      value={stats.by_state.submitted ?? 0} accent="amber" />
-                    <StatCard label="Terverifikasi" value={stats.by_state.verified  ?? 0} accent="blue" />
-                    <StatCard label="Ditolak"       value={stats.by_state.rejected  ?? 0} accent="error" />
-                    <StatCard label="Dipublikasi"   value={stats.by_state.published ?? 0} accent="primary" />
-                </div>
-            </Section>
-
-            <Section title="Penilaian Terbaru" action={<ViewAllLink href="/assessments" />}>
-                <AssessmentTable rows={stats.recent_assessments} showTeacher />
-            </Section>
+            ))}
         </div>
     );
 }
 
-function WaliKelasDashboard({ stats }: { stats: WaliKelasStats }) {
+// ── ROLE DASHBOARDS ────────────────────────────────────────────────────────
+function AdminDashboard({ stats, firstName }: { stats: AdminStats; firstName: string }) {
     return (
-        <div className="space-y-xl">
-            <Section title="Ringkasan">
-                <div className="grid gap-md sm:grid-cols-3">
-                    <StatCard label="Menunggu Verifikasi" value={stats.pending_verification} icon="pending"   accent="amber" />
-                    <StatCard label="Sudah Terverifikasi" value={stats.verified}             icon="verified"  accent="blue" />
-                    <StatCard label="Dipublikasi"         value={stats.published}            icon="publish"   accent="primary" />
+        <>
+            <PageHero
+                icon="dashboard"
+                title={`Selamat datang, ${firstName}`}
+                subtitle="Pantau performa akademik dan manajemen institusi secara real-time."
+                action={
+                    <Link
+                        href="/assessments"
+                        className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-5 py-2.5 text-button font-semibold text-on-primary backdrop-blur-sm transition-all hover:bg-white/25"
+                    >
+                        <span className="material-symbols-outlined">visibility</span>
+                        Lihat Penilaian
+                    </Link>
+                }
+            />
+
+            <section className="mb-section-margin grid grid-cols-1 gap-card-gap md:grid-cols-2 lg:grid-cols-4">
+                <StatCard label="Total Kelas"          value={stats.totals.classrooms}  icon="domain"     tone="primary"   badge={`${stats.totals.classrooms} kelas`} />
+                <StatCard label="Total Santri"         value={stats.totals.students}    icon="group"      tone="secondary" badge="Aktif" />
+                <StatCard label="Total Mata Pelajaran" value={stats.totals.subjects}    icon="menu_book"  tone="tertiary" />
+                <StatCard label="Total Penilaian"     value={stats.totals.assessments} icon="fact_check" inverse />
+            </section>
+
+            <section className="grid grid-cols-1 gap-card-gap lg:grid-cols-3">
+                <div className="lg:col-span-1">
+                    <Card title="Status Penilaian" icon="pie_chart">
+                        <StateDistribution counts={stats.by_state} />
+                    </Card>
                 </div>
-            </Section>
+                <div className="lg:col-span-2">
+                    <Card title="Penilaian Terbaru" icon="history" action={<ViewAllLink href="/assessments" />}>
+                        <AssessmentTable rows={stats.recent_assessments} showTeacher />
+                    </Card>
+                </div>
+            </section>
+        </>
+    );
+}
+
+function WaliKelasDashboard({ stats, firstName }: { stats: WaliKelasStats; firstName: string }) {
+    return (
+        <>
+            <PageHero
+                icon="verified"
+                title={`Selamat datang, ${firstName}`}
+                subtitle="Verifikasi penilaian dari guru pengajar dan publikasikan hasil."
+            />
+
+            <section className="mb-section-margin grid grid-cols-1 gap-card-gap md:grid-cols-3">
+                <StatCard label="Menunggu Verifikasi" value={stats.pending_verification} icon="pending"  tone="tertiary" />
+                <StatCard label="Sudah Terverifikasi" value={stats.verified}             icon="verified" tone="secondary" />
+                <StatCard label="Dipublikasi"         value={stats.published}            icon="publish"  inverse />
+            </section>
 
             {stats.pending_verification > 0 && (
-                <Banner icon="warning" tone="warning">
-                    {stats.pending_verification} penilaian menunggu verifikasi Anda.
-                </Banner>
+                <div className="mb-section-margin flex items-center gap-3 rounded-xl border border-tertiary-fixed-dim bg-tertiary-fixed/40 p-4">
+                    <span className="material-symbols-outlined text-tertiary">warning</span>
+                    <p className="text-body-base text-on-surface">
+                        <strong>{stats.pending_verification}</strong> penilaian menunggu verifikasi Anda.
+                    </p>
+                </div>
             )}
 
-            <Section title="Antrian Verifikasi" action={<ViewAllLink href="/assessments?state=submitted" />}>
+            <Card title="Antrian Verifikasi" icon="task_alt" action={<ViewAllLink href="/assessments?state=submitted" />}>
                 <AssessmentTable rows={stats.queue} showTeacher />
-            </Section>
-        </div>
+            </Card>
+        </>
     );
 }
 
-function GuruDashboard({ stats }: { stats: GuruStats }) {
+function GuruDashboard({ stats, firstName }: { stats: GuruStats; firstName: string }) {
     const needsAction = (stats.by_state.draft ?? 0) + (stats.by_state.rejected ?? 0);
 
     return (
-        <div className="space-y-xl">
-            <Section
-                title="Penilaian Saya"
+        <>
+            <PageHero
+                icon="edit_note"
+                title={`Selamat datang, ${firstName}`}
+                subtitle="Input nilai santri dan ajukan penilaian untuk diverifikasi."
                 action={
                     <Link
                         href="/assessments/create"
-                        className="inline-flex items-center gap-1 rounded-lg bg-primary-container px-md py-sm text-button font-button text-on-primary-container shadow-sm transition-all hover:opacity-90"
+                        className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-5 py-2.5 text-button font-semibold text-on-primary backdrop-blur-sm transition-all hover:bg-white/25"
                     >
-                        <span className="material-symbols-outlined text-[16px]">add</span>
+                        <span className="material-symbols-outlined">add</span>
                         Buat Penilaian
                     </Link>
                 }
-            >
-                <div className="grid gap-md sm:grid-cols-2 lg:grid-cols-5">
-                    <StatCard label="Draft"         value={stats.by_state.draft     ?? 0} accent="neutral" />
-                    <StatCard label="Diajukan"      value={stats.by_state.submitted ?? 0} accent="amber" />
-                    <StatCard label="Terverifikasi" value={stats.by_state.verified  ?? 0} accent="blue" />
-                    <StatCard label="Ditolak"       value={stats.by_state.rejected  ?? 0} accent="error" />
-                    <StatCard label="Dipublikasi"   value={stats.by_state.published ?? 0} accent="primary" />
-                </div>
-            </Section>
+            />
+
+            <section className="mb-section-margin grid grid-cols-2 gap-card-gap lg:grid-cols-5">
+                <StatCard label="Draft"         value={stats.by_state.draft     ?? 0} tone="neutral" />
+                <StatCard label="Diajukan"      value={stats.by_state.submitted ?? 0} tone="tertiary" />
+                <StatCard label="Terverifikasi" value={stats.by_state.verified  ?? 0} tone="secondary" />
+                <StatCard label="Ditolak"       value={stats.by_state.rejected  ?? 0} tone="neutral" />
+                <StatCard label="Dipublikasi"   value={stats.by_state.published ?? 0} tone="primary" />
+            </section>
 
             {needsAction > 0 && (
-                <Banner icon="info" tone="warning">
-                    {needsAction} penilaian perlu tindakan (draft belum diajukan / ditolak).
-                </Banner>
+                <div className="mb-section-margin flex items-center gap-3 rounded-xl border border-tertiary-fixed-dim bg-tertiary-fixed/40 p-4">
+                    <span className="material-symbols-outlined text-tertiary">info</span>
+                    <p className="text-body-base text-on-surface">
+                        <strong>{needsAction}</strong> penilaian perlu tindakan (draft belum diajukan / ditolak).
+                    </p>
+                </div>
             )}
 
-            <Section title="Penilaian Terkini" action={<ViewAllLink href="/assessments" />}>
+            <Card title="Penilaian Saya" icon="assignment" action={<ViewAllLink href="/assessments" />}>
                 <AssessmentTable rows={stats.my_assessments} />
-            </Section>
-        </div>
+            </Card>
+        </>
     );
 }
 
 function WaliSantriDashboard() {
     return (
-        <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-xl text-center shadow-sm">
-            <span className="material-symbols-outlined text-[40px] text-on-surface-variant/40">
-                description
-            </span>
-            <p className="mt-xs text-body-md font-body-md text-on-surface-variant">
+        <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-12 text-center shadow-sm">
+            <span className="material-symbols-outlined text-[48px] text-on-surface-variant/40">description</span>
+            <p className="mt-3 text-body-base text-on-surface-variant">
                 Rapor belum tersedia. Hubungi pihak pesantren.
             </p>
         </div>
@@ -348,38 +310,17 @@ function WaliSantriDashboard() {
 }
 
 // ── ROOT ───────────────────────────────────────────────────────────────────
-function greeting(): string {
-    const h = new Date().getHours();
-    if (h < 11) return 'Selamat pagi';
-    if (h < 15) return 'Selamat siang';
-    if (h < 18) return 'Selamat sore';
-    return 'Selamat malam';
-}
-
 export default function Dashboard() {
     const { stats, role, auth } = usePage<Props>().props;
     const firstName = auth.user.name.split(' ')[0];
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex flex-col">
-                    <span className="text-h3 font-h3 text-on-surface">
-                        {greeting()}, {firstName}
-                    </span>
-                    <span className="text-body-sm font-body-sm text-on-surface-variant">
-                        Ringkasan aktivitas hari ini
-                    </span>
-                </div>
-            }
-        >
+        <AuthenticatedLayout header="Dashboard">
             <Head title="Dashboard" />
-            <div className="mx-auto max-w-container-max">
-                {role === 'super_admin' && <AdminDashboard     stats={stats as AdminStats} />}
-                {role === 'wali_kelas'  && <WaliKelasDashboard stats={stats as WaliKelasStats} />}
-                {role === 'guru_mapel'  && <GuruDashboard      stats={stats as GuruStats} />}
-                {role === 'wali_santri' && <WaliSantriDashboard />}
-            </div>
+            {role === 'super_admin' && <AdminDashboard     stats={stats as AdminStats}     firstName={firstName} />}
+            {role === 'wali_kelas'  && <WaliKelasDashboard stats={stats as WaliKelasStats} firstName={firstName} />}
+            {role === 'guru_mapel'  && <GuruDashboard      stats={stats as GuruStats}      firstName={firstName} />}
+            {role === 'wali_santri' && <WaliSantriDashboard />}
         </AuthenticatedLayout>
     );
 }

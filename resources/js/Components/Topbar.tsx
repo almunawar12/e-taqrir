@@ -11,45 +11,59 @@ export default function Topbar({
     title?: ReactNode;
 }) {
     const user = usePage().props.auth.user;
-    const initial = user.name.charAt(0).toUpperCase();
+    const initials = user.name
+        .split(' ')
+        .map((s) => s.charAt(0))
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
 
     return (
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-md border-b border-outline-variant bg-surface-container-lowest px-md md:px-lg">
-            <div className="flex flex-1 items-center gap-md">
-                {/* Mobile hamburger */}
+        <header className="fixed top-0 right-0 z-30 flex h-16 w-full items-center justify-between border-b border-outline-variant bg-surface/80 px-container-padding backdrop-blur-md lg:w-[calc(100%-280px)]">
+            <div className="flex items-center gap-3">
                 <button
                     type="button"
                     onClick={onMenuClick}
-                    className="flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container md:hidden"
-                    aria-label="Open menu"
+                    className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high lg:hidden"
+                    aria-label="Buka menu"
                 >
-                    <span className="material-symbols-outlined text-[22px]">menu</span>
+                    <span className="material-symbols-outlined">menu</span>
                 </button>
-
                 {title && (
-                    <div className="flex-1 truncate text-h3 font-h3 text-on-surface">
+                    <div className="text-headline-md font-bold text-primary">
                         {title}
                     </div>
                 )}
             </div>
 
-            <div className="flex items-center gap-sm">
+            <div className="flex items-center gap-4">
                 <RoleSwitcher />
+
+                <button
+                    type="button"
+                    className="relative flex h-10 w-10 items-center justify-center rounded-full text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                    aria-label="Notifikasi"
+                >
+                    <span className="material-symbols-outlined">notifications</span>
+                    <span className="absolute right-2 top-2 h-2 w-2 rounded-full border-2 border-surface bg-error" />
+                </button>
+
+                <div className="hidden h-8 w-px bg-outline-variant sm:block" />
 
                 <Dropdown>
                     <Dropdown.Trigger>
                         <button
                             type="button"
-                            className="flex items-center gap-sm rounded-full p-1 pr-md transition-colors hover:bg-surface-container"
+                            className="flex items-center gap-3 rounded-full p-1 transition-colors hover:bg-surface-container-high"
                         >
-                            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
-                                {initial}
-                            </span>
-                            <span className="hidden text-button font-button text-on-surface md:block">
-                                {user.name}
-                            </span>
-                            <span className="material-symbols-outlined text-[18px] text-on-surface-variant">
-                                expand_more
+                            <div className="hidden text-right sm:block">
+                                <p className="text-label-caps text-on-surface">{user.name}</p>
+                                <p className="text-[10px] uppercase tracking-wider text-on-surface-variant">
+                                    {user.email}
+                                </p>
+                            </div>
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-primary-fixed-dim bg-primary text-body-sm font-bold text-on-primary">
+                                {initials}
                             </span>
                         </button>
                     </Dropdown.Trigger>

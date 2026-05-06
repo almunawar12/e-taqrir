@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useConfirm } from '@/hooks/useConfirm';
-import { router, usePage } from '@inertiajs/react';
-import { FormEvent, useEffect, useState } from 'react';
+import { Head, router, usePage } from '@inertiajs/react';
+import { FormEvent, useState } from 'react';
 import { FilePond, registerPlugin } from 'react-filepond';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
@@ -10,12 +10,7 @@ import type { PageProps } from '@/types';
 
 registerPlugin(FilePondPluginFileValidateType, FilePondPluginFileValidateSize);
 
-interface Student {
-    id: number;
-    nis: string;
-    name: string;
-    gender: 'L' | 'P';
-}
+interface Student { id: number; nis: string; name: string; gender: 'L' | 'P' }
 
 interface Item {
     id: number;
@@ -54,32 +49,40 @@ interface Props extends PageProps {
 }
 
 const STATE_LABELS: Record<string, string> = {
-    draft: 'Draft',
+    draft:     'Draft',
     submitted: 'Diajukan',
-    verified: 'Terverifikasi',
-    rejected: 'Ditolak',
+    verified:  'Terverifikasi',
+    rejected:  'Ditolak',
     published: 'Dipublikasi',
+};
+
+const STATE_BADGE: Record<string, string> = {
+    draft:     'bg-surface-container-high text-on-surface-variant',
+    submitted: 'bg-tertiary-fixed text-on-tertiary-fixed-variant',
+    verified:  'bg-secondary-container text-on-secondary-container',
+    rejected:  'bg-error-container text-on-error-container',
+    published: 'bg-primary/10 text-primary',
 };
 
 export default function AssessmentEdit() {
     const { assessment, canSubmit } = usePage<Props>().props;
 
     const [scores, setScores] = useState<Record<number, string>>(
-        Object.fromEntries(assessment.items.map(i => [i.student_id, i.score ?? '']))
+        Object.fromEntries(assessment.items.map((i) => [i.student_id, i.score ?? ''])),
     );
     const [notes, setNotes] = useState<Record<number, string>>(
-        Object.fromEntries(assessment.items.map(i => [i.student_id, i.notes ?? '']))
+        Object.fromEntries(assessment.items.map((i) => [i.student_id, i.notes ?? ''])),
     );
     const [saving, setSaving] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [submitComment, setSubmitComment] = useState('');
     const [evidenceName, setEvidenceName] = useState<string | null>(assessment.evidence_name);
-    const [pondFiles, setPondFiles] = useState<any[]>([]);
+    const [pondFiles, setPondFiles] = useState<unknown[]>([]);
     const { confirm, dialog } = useConfirm();
 
     const persistScores = () => {
         setSaving(true);
-        const items = assessment.items.map(item => ({
+        const items = assessment.items.map((item) => ({
             student_id: item.student_id,
             score: scores[item.student_id] === '' ? null : scores[item.student_id],
             notes: notes[item.student_id] || null,
@@ -97,17 +100,14 @@ export default function AssessmentEdit() {
             tone: 'primary',
             icon: 'save',
             confirmLabel: 'Simpan',
-            onConfirm: (done) => {
-                persistScores();
-                done();
-            },
+            onConfirm: (done) => { persistScores(); done(); },
         });
     };
 
     const handleSubmit = () => {
         confirm({
             title: 'Ajukan penilaian?',
-            message: 'Penilaian akan dikirim ke wali kelas untuk diverifikasi. Pastikan semua data sudah benar.',
+            message: 'Penilaian akan dikirim ke wali kelas untuk diverifikasi.',
             tone: 'primary',
             icon: 'send',
             confirmLabel: 'Ajukan',
@@ -121,79 +121,128 @@ export default function AssessmentEdit() {
         });
     };
 
+    const handleDeleteEvidence = () => {
+        confirm({
+            title: 'Hapus berkas?',
+            message: 'Berkas pendukung akan dihapus permanen.',
+            tone: 'danger',
+            confirmLabel: 'Hapus',
+            onConfirm: (done) => {
+                router.delete(`/assessments/${assessment.id}/evidence`, {
+                    onSuccess: () => setEvidenceName(null),
+                    onFinish: done,
+                });
+            },
+        });
+    };
+
     const isRejected = assessment.state === 'rejected';
     const lastRejection = isRejected
-        ? [...assessment.approvals].reverse().find(a => a.to_state === 'rejected')
+        ? [...assessment.approvals].reverse().find((a) => a.to_state === 'rejected')
         : null;
 
     return (
-        <AuthenticatedLayout
-            header={
-                <div className="flex items-center justify-between">
-                    <h2 className="text-xl font-semibold text-gray-800">
-                        Input Nilai — {assessment.classroom.name} · [{assessment.subject.code}] {assessment.subject.name}
-                    </h2>
-                    <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                        isRejected ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
-                    }`}>
+        <AuthenticatedLayout header="Input Nilai">
+            <Head title="Input Nilai" />
+            {dialog}
+
+            <div className="mx-auto max-w-5xl space-y-6">
+                {/* Header card */}
+                <div className="flex flex-col items-start justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm md:flex-row md:items-center">
+                    <div className="flex items-center gap-3">
+                        <a
+                            href="/assessments"
+                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                        >
+                            <span className="material-symbols-outlined">arrow_back</span>
+                        </a>
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="rounded bg-primary/10 px-2 py-0.5 font-mono text-xs font-bold text-primary">
+                                    {assessment.subject.code}
+                                </span>
+                                <h1 className="text-headline-md font-bold text-on-surface">
+                                    {assessment.subject.name}
+                                </h1>
+                            </div>
+                            <p className="text-body-sm text-on-surface-variant">
+                                {assessment.classroom.name} · {assessment.academic_year} · Semester {assessment.semester}
+                            </p>
+                        </div>
+                    </div>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-label-caps ${STATE_BADGE[assessment.state] ?? ''}`}>
                         {STATE_LABELS[assessment.state] ?? assessment.state}
                     </span>
                 </div>
-            }
-        >
-            {dialog}
-            <div className="mx-auto max-w-5xl px-4 py-8 space-y-6">
+
+                {/* Rejection notice */}
                 {isRejected && lastRejection && (
-                    <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                        <p className="font-medium">Penilaian ditolak oleh {lastRejection.user.name}</p>
-                        {lastRejection.comment && <p className="mt-1">{lastRejection.comment}</p>}
+                    <div className="flex items-start gap-3 rounded-xl border border-error/20 bg-error-container/40 p-4">
+                        <span className="material-symbols-outlined text-error">error</span>
+                        <div>
+                            <p className="text-body-base font-semibold text-on-error-container">
+                                Penilaian ditolak oleh {lastRejection.user.name}
+                            </p>
+                            {lastRejection.comment && (
+                                <p className="mt-1 text-body-sm text-on-surface">{lastRejection.comment}</p>
+                            )}
+                        </div>
                     </div>
                 )}
 
-                <form onSubmit={handleSave} className="rounded-lg border bg-white shadow-sm overflow-hidden">
-                    <div className="px-6 py-4 border-b bg-gray-50 flex items-center justify-between">
-                        <div className="text-sm text-gray-600">
-                            {assessment.academic_year} · Semester {assessment.semester}
-                        </div>
-                        <div className="text-sm text-gray-500">{assessment.items.length} santri</div>
+                {/* Score input table */}
+                <form onSubmit={handleSave} className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
+                    <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-4">
+                        <h3 className="text-headline-md text-on-surface">Daftar Nilai</h3>
+                        <span className="text-body-sm text-on-surface-variant">
+                            {assessment.items.length} santri
+                        </span>
                     </div>
 
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
+                        <table className="w-full text-left">
+                            <thead className="bg-surface-container-low text-on-surface-variant">
                                 <tr>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-8">#</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIS</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase w-28">Nilai (0-100)</th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Catatan</th>
+                                    <th className="w-12 px-4 py-3 text-label-caps">#</th>
+                                    <th className="px-4 py-3 text-label-caps">NIS</th>
+                                    <th className="px-4 py-3 text-label-caps">Nama Santri</th>
+                                    <th className="w-32 px-4 py-3 text-label-caps">Nilai (0-100)</th>
+                                    <th className="px-4 py-3 text-label-caps">Catatan</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-200 bg-white">
+                            <tbody className="divide-y divide-outline-variant">
                                 {assessment.items.map((item, idx) => (
-                                    <tr key={item.student_id} className="hover:bg-gray-50">
-                                        <td className="px-4 py-2 text-sm text-gray-500">{idx + 1}</td>
-                                        <td className="px-4 py-2 text-sm text-gray-600">{item.student.nis}</td>
-                                        <td className="px-4 py-2 text-sm font-medium text-gray-900">{item.student.name}</td>
-                                        <td className="px-4 py-2">
+                                    <tr key={item.student_id} className="transition-colors hover:bg-surface-container-low/50">
+                                        <td className="px-4 py-3 text-body-sm text-on-surface-variant">{idx + 1}</td>
+                                        <td className="px-4 py-3 text-body-sm font-mono text-on-surface-variant">
+                                            {item.student.nis}
+                                        </td>
+                                        <td className="px-4 py-3 text-body-base font-semibold text-on-surface">
+                                            {item.student.name}
+                                        </td>
+                                        <td className="px-4 py-3">
                                             <input
                                                 type="number"
                                                 min="0"
                                                 max="100"
                                                 step="0.01"
                                                 value={scores[item.student_id]}
-                                                onChange={e => setScores(prev => ({ ...prev, [item.student_id]: e.target.value }))}
-                                                className="block w-24 rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                onChange={(e) =>
+                                                    setScores((p) => ({ ...p, [item.student_id]: e.target.value }))
+                                                }
                                                 placeholder="—"
+                                                className="w-24 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
                                             />
                                         </td>
-                                        <td className="px-4 py-2">
+                                        <td className="px-4 py-3">
                                             <input
                                                 type="text"
                                                 value={notes[item.student_id]}
-                                                onChange={e => setNotes(prev => ({ ...prev, [item.student_id]: e.target.value }))}
-                                                className="block w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                                onChange={(e) =>
+                                                    setNotes((p) => ({ ...p, [item.student_id]: e.target.value }))
+                                                }
                                                 placeholder="Opsional"
+                                                className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
                                             />
                                         </td>
                                     </tr>
@@ -202,112 +251,110 @@ export default function AssessmentEdit() {
                         </table>
                     </div>
 
-                    <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between gap-4">
+                    <div className="flex items-center justify-end gap-3 border-t border-outline-variant bg-surface-container-low px-6 py-4">
                         <button
                             type="submit"
                             disabled={saving}
-                            className="rounded-md bg-indigo-600 px-5 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
+                            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-button font-semibold text-on-primary shadow-sm transition-all hover:brightness-110 disabled:opacity-60"
                         >
+                            {saving && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}
+                            <span className="material-symbols-outlined text-[18px]">save</span>
                             {saving ? 'Menyimpan...' : 'Simpan Nilai'}
                         </button>
-                        <a href="/assessments" className="text-sm text-gray-500 hover:underline">Kembali</a>
                     </div>
                 </form>
 
-                {/* Evidence Upload */}
-                <div className="rounded-lg border bg-white p-6 shadow-sm space-y-3">
-                    <h3 className="text-sm font-semibold text-gray-700">Berkas Pendukung (Opsional)</h3>
-                    <p className="text-xs text-gray-500">PDF, JPG, PNG, WebP — maks 10 MB</p>
+                {/* Evidence upload */}
+                <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">
+                    <h3 className="text-headline-md text-on-surface">Berkas Pendukung</h3>
+                    <p className="text-body-sm text-on-surface-variant">PDF, JPG, PNG, WebP — maks 10 MB. Opsional.</p>
 
-                    {evidenceName && (
-                        <div className="flex items-center gap-3 rounded-md bg-gray-50 border px-3 py-2 text-sm">
-                            <span className="flex-1 truncate text-gray-700">{evidenceName}</span>
+                    {evidenceName ? (
+                        <div className="mt-4 flex items-center gap-3 rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3">
+                            <span className="material-symbols-outlined text-primary">attach_file</span>
+                            <span className="flex-1 truncate text-body-sm text-on-surface">{evidenceName}</span>
                             <a
                                 href={`/assessments/${assessment.id}/evidence`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-indigo-600 hover:underline text-xs"
+                                className="rounded-lg px-3 py-1.5 text-button font-semibold text-primary transition-colors hover:bg-primary/10"
                             >
                                 Lihat
                             </a>
                             <button
                                 type="button"
-                                onClick={() => {
-                                    confirm({
-                                        title: 'Hapus berkas?',
-                                        message: 'Berkas pendukung akan dihapus permanen.',
-                                        tone: 'danger',
-                                        confirmLabel: 'Hapus',
-                                        onConfirm: (done) => {
-                                            router.delete(`/assessments/${assessment.id}/evidence`, {
-                                                onSuccess: () => setEvidenceName(null),
-                                                onFinish: done,
-                                            });
-                                        },
-                                    });
-                                }}
-                                className="text-red-500 hover:underline text-xs"
+                                onClick={handleDeleteEvidence}
+                                className="rounded-lg px-3 py-1.5 text-button font-semibold text-error transition-colors hover:bg-error/10"
                             >
                                 Hapus
                             </button>
                         </div>
-                    )}
-
-                    {!evidenceName && (
-                        <FilePond
-                            files={pondFiles}
-                            onupdatefiles={setPondFiles}
-                            allowMultiple={false}
-                            acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/webp']}
-                            maxFileSize="10MB"
-                            labelIdle='Seret & lepas berkas atau <span class="filepond--label-action">Pilih File</span>'
-                            server={{
-                                process: {
-                                    url: `/assessments/${assessment.id}/evidence`,
-                                    method: 'POST',
-                                    withCredentials: true,
-                                    ondata: (formData) => {
-                                        // FilePond sends as 'filepond' key; rename to 'evidence'
-                                        const file = (formData as any).get('filepond');
-                                        const newForm = new FormData();
-                                        newForm.append('evidence', file);
-                                        return newForm;
+                    ) : (
+                        <div className="mt-4">
+                            <FilePond
+                                files={pondFiles as never}
+                                onupdatefiles={setPondFiles as never}
+                                allowMultiple={false}
+                                acceptedFileTypes={['application/pdf', 'image/jpeg', 'image/png', 'image/webp']}
+                                maxFileSize="10MB"
+                                labelIdle='Seret & lepas berkas atau <span class="filepond--label-action">Pilih File</span>'
+                                server={{
+                                    process: {
+                                        url: `/assessments/${assessment.id}/evidence`,
+                                        method: 'POST',
+                                        withCredentials: true,
+                                        ondata: (formData) => {
+                                            const file = (formData as FormData).get('filepond');
+                                            const newForm = new FormData();
+                                            if (file) newForm.append('evidence', file);
+                                            return newForm;
+                                        },
+                                        onload: (response) => {
+                                            const data = JSON.parse(response);
+                                            setEvidenceName(data.name);
+                                            return data.path;
+                                        },
                                     },
-                                    onload: (response) => {
-                                        const data = JSON.parse(response);
-                                        setEvidenceName(data.name);
-                                        return data.path;
+                                    revert: {
+                                        url: `/assessments/${assessment.id}/evidence`,
+                                        method: 'DELETE',
+                                        withCredentials: true,
+                                        onload: (response) => {
+                                            setEvidenceName(null);
+                                            return response;
+                                        },
                                     },
-                                },
-                                revert: {
-                                    url: `/assessments/${assessment.id}/evidence`,
-                                    method: 'DELETE',
-                                    withCredentials: true,
-                                    onload: (response: any) => {
-                                        setEvidenceName(null);
-                                        return response;
-                                    },
-                                },
-                            }}
-                        />
+                                }}
+                            />
+                        </div>
                     )}
                 </div>
 
+                {/* Submit for review */}
                 {canSubmit && (
-                    <div className="rounded-lg border bg-white p-6 shadow-sm space-y-3">
-                        <h3 className="text-sm font-semibold text-gray-700">Ajukan ke Wali Kelas</h3>
+                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
+                        <h3 className="flex items-center gap-2 text-headline-md text-on-surface">
+                            <span className="material-symbols-outlined text-primary">send</span>
+                            Ajukan ke Wali Kelas
+                        </h3>
+                        <p className="mt-1 text-body-sm text-on-surface-variant">
+                            Setelah diajukan, penilaian akan diverifikasi oleh wali kelas.
+                        </p>
                         <textarea
-                            rows={2}
+                            rows={3}
                             value={submitComment}
-                            onChange={e => setSubmitComment(e.target.value)}
+                            onChange={(e) => setSubmitComment(e.target.value)}
                             placeholder="Catatan pengajuan (opsional)"
-                            className="block w-full rounded-md border-gray-300 text-sm focus:border-indigo-500 focus:ring-indigo-500"
+                            className="mt-4 block w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
                         <button
+                            type="button"
                             onClick={handleSubmit}
                             disabled={submitting}
-                            className="rounded-md bg-emerald-600 px-5 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-60"
+                            className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-button font-semibold text-on-primary shadow-sm transition-all hover:brightness-110 disabled:opacity-60"
                         >
+                            {submitting && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}
+                            <span className="material-symbols-outlined text-[18px]">send</span>
                             {submitting ? 'Mengajukan...' : 'Ajukan Penilaian'}
                         </button>
                     </div>

@@ -1,4 +1,4 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import type { PageProps, RoleName } from '@/types';
 
 interface NavItem {
@@ -10,13 +10,13 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-    { label: 'Dashboard',      href: '/dashboard',   icon: 'dashboard',    routeName: 'dashboard' },
-    { label: 'Penilaian',      href: '/assessments', icon: 'assignment',   routeName: 'assessments.*' },
-    { label: 'Kelas',          href: '/classrooms',  icon: 'class',        routeName: 'classrooms.*',
+    { label: 'Dashboard',      href: '/dashboard',   icon: 'dashboard',  routeName: 'dashboard' },
+    { label: 'Penilaian',      href: '/assessments', icon: 'assessment', routeName: 'assessments.*' },
+    { label: 'Kelas',          href: '/classrooms',  icon: 'school',     routeName: 'classrooms.*',
       roles: ['super_admin', 'wali_kelas'] },
-    { label: 'Santri',         href: '/students',    icon: 'groups',       routeName: 'students.*',
+    { label: 'Santri',         href: '/students',    icon: 'group',      routeName: 'students.*',
       roles: ['super_admin', 'wali_kelas'] },
-    { label: 'Mata Pelajaran', href: '/subjects',    icon: 'menu_book',    routeName: 'subjects.*',
+    { label: 'Mata Pelajaran', href: '/subjects',    icon: 'book',       routeName: 'subjects.*',
       roles: ['super_admin'] },
 ];
 
@@ -44,68 +44,75 @@ export default function Sidebar({
 
     return (
         <>
-            {/* Mobile backdrop */}
             {open && (
                 <div
-                    className="fixed inset-0 z-30 bg-black/40 md:hidden"
+                    className="fixed inset-0 z-30 bg-on-surface/40 lg:hidden"
                     onClick={onClose}
                     aria-hidden
                 />
             )}
 
             <aside
-                className={`fixed inset-y-0 left-0 z-40 flex w-sidebar-width flex-col border-r border-outline-variant bg-surface-container-lowest transition-transform md:translate-x-0 ${
+                className={`fixed left-0 top-0 z-40 flex h-full w-sidebar-width flex-col gap-2 border-r border-outline-variant bg-surface p-4 shadow-sm transition-transform lg:translate-x-0 ${
                     open ? 'translate-x-0' : '-translate-x-full'
                 }`}
             >
                 {/* Brand */}
-                <div className="flex h-16 items-center gap-sm border-b border-outline-variant px-md">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary">
-                        <span className="text-sm font-bold text-on-primary">eT</span>
+                <div className="mb-6 flex items-center gap-3 px-2 py-4">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-on-primary">
+                        <span className="material-symbols-outlined">school</span>
                     </div>
-                    <div className="flex flex-col leading-tight">
-                        <span className="text-base font-bold text-primary">e-Taqrir</span>
-                        <span className="text-[10px] font-medium uppercase tracking-wider text-on-surface-variant">
-                            Habiburrahman
-                        </span>
+                    <div>
+                        <h1 className="text-headline-md font-bold text-primary">e-Taqrir</h1>
+                        <p className="text-label-caps text-on-surface-variant">Habiburrahman</p>
                     </div>
                 </div>
 
                 {/* Nav */}
-                <nav className="flex-1 overflow-y-auto px-sm py-md">
-                    <p className="mb-xs px-md text-label-caps font-label-caps uppercase tracking-wider text-on-surface-variant">
-                        Menu
-                    </p>
-                    <ul className="space-y-1">
-                        {visible.map((item) => {
-                            const active = isActive(item.routeName);
-                            return (
-                                <li key={item.href}>
-                                    <Link
-                                        href={item.href}
-                                        onClick={onClose}
-                                        className={`flex items-center gap-sm rounded-lg px-md py-sm text-button font-button transition-all ${
-                                            active
-                                                ? 'bg-primary text-on-primary shadow-sm'
-                                                : 'text-on-surface hover:bg-surface-container'
-                                        }`}
-                                    >
-                                        <span className="material-symbols-outlined text-[20px]">
-                                            {item.icon}
-                                        </span>
-                                        <span>{item.label}</span>
-                                    </Link>
-                                </li>
-                            );
-                        })}
-                    </ul>
+                <nav className="flex flex-1 flex-col gap-1">
+                    {visible.map((item) => {
+                        const active = isActive(item.routeName);
+                        return (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                onClick={onClose}
+                                className={`flex items-center gap-3 rounded-lg px-4 py-3 text-body-base transition-all duration-200 ${
+                                    active
+                                        ? 'bg-primary text-on-primary shadow-md'
+                                        : 'text-on-surface-variant hover:bg-surface-container-high'
+                                }`}
+                            >
+                                <span
+                                    className="material-symbols-outlined"
+                                    style={active ? { fontVariationSettings: "'FILL' 1" } : undefined}
+                                >
+                                    {item.icon}
+                                </span>
+                                <span className={active ? 'font-semibold' : ''}>{item.label}</span>
+                            </Link>
+                        );
+                    })}
                 </nav>
 
-                {/* Footer */}
-                <div className="border-t border-outline-variant p-md">
-                    <p className="text-[10px] text-on-surface-variant">
-                        © 2024 Habiburrahman
-                    </p>
+                {/* Footer nav */}
+                <div className="flex flex-col gap-1 border-t border-outline-variant pt-4">
+                    <Link
+                        href={route('profile.edit')}
+                        onClick={onClose}
+                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-body-base text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                    >
+                        <span className="material-symbols-outlined">settings</span>
+                        <span>Pengaturan</span>
+                    </Link>
+                    <button
+                        type="button"
+                        onClick={() => router.post(route('logout'))}
+                        className="flex items-center gap-3 rounded-lg px-4 py-3 text-body-base text-error transition-colors hover:bg-error-container/40"
+                    >
+                        <span className="material-symbols-outlined">logout</span>
+                        <span>Keluar</span>
+                    </button>
                 </div>
             </aside>
         </>

@@ -13,13 +13,13 @@ export default function AuthenticatedLayout({
         <div className="min-h-screen bg-background font-sans text-on-surface">
             <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-            <div className="md:pl-sidebar-width">
-                <Topbar
-                    onMenuClick={() => setSidebarOpen(true)}
-                    title={header}
-                />
-                <main className="px-md py-lg md:px-lg">{children}</main>
+            <div className="lg:ml-[280px]">
+                <Topbar onMenuClick={() => setSidebarOpen(true)} title={header} />
+                <main className="pt-16">
+                    <div className="p-container-padding">{children}</div>
+                </main>
             </div>
+
             <Toast />
         </div>
     );

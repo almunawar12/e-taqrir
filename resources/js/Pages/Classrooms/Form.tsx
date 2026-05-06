@@ -1,24 +1,18 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { useForm, usePage } from '@inertiajs/react';
+import { FormActions, FormField, SelectField, TextField } from '@/Components/FormField';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import { z } from 'zod';
 import type { PageProps } from '@/types';
 
 const schema = z.object({
-    name: z.string().min(1, 'Nama kelas wajib diisi').max(100),
-    grade_level: z.string().min(1, 'Tingkat wajib diisi').max(50),
-    academic_year: z
-        .string()
-        .min(1, 'Tahun ajaran wajib diisi')
-        .regex(/^\d{4}\/\d{4}$/, 'Format tahun ajaran harus YYYY/YYYY, contoh: 2024/2025'),
+    name:                z.string().min(1, 'Nama kelas wajib diisi').max(100),
+    grade_level:         z.string().min(1, 'Tingkat wajib diisi').max(50),
+    academic_year:       z.string().regex(/^\d{4}\/\d{4}$/, 'Format: YYYY/YYYY (contoh: 2024/2025)'),
     homeroom_teacher_id: z.string().optional(),
 });
 
-interface Teacher {
-    id: number;
-    name: string;
-}
-
+interface Teacher { id: number; name: string }
 interface Classroom {
     id: number;
     name: string;
@@ -26,7 +20,6 @@ interface Classroom {
     academic_year: string;
     homeroom_teacher_id: number | null;
 }
-
 interface Props extends PageProps {
     classroom?: Classroom;
     teachers: Teacher[];
@@ -37,9 +30,9 @@ export default function ClassroomForm() {
     const isEdit = !!classroom;
 
     const { data, setData, post, put, processing, errors } = useForm({
-        name: classroom?.name ?? '',
-        grade_level: classroom?.grade_level ?? '',
-        academic_year: classroom?.academic_year ?? '',
+        name:                classroom?.name ?? '',
+        grade_level:         classroom?.grade_level ?? '',
+        academic_year:       classroom?.academic_year ?? '',
         homeroom_teacher_id: classroom?.homeroom_teacher_id ? String(classroom.homeroom_teacher_id) : '',
     });
 
@@ -50,105 +43,86 @@ export default function ClassroomForm() {
         const result = schema.safeParse(data);
         if (!result.success) {
             const errs: Record<string, string> = {};
-            result.error.issues.forEach(err => {
+            result.error.issues.forEach((err) => {
                 if (err.path[0]) errs[String(err.path[0])] = err.message;
             });
             setZodErrors(errs);
             return;
         }
         setZodErrors({});
-        if (isEdit) {
-            put(`/classrooms/${classroom!.id}`);
-        } else {
-            post('/classrooms');
-        }
+        if (isEdit) put(`/classrooms/${classroom!.id}`);
+        else        post('/classrooms');
     };
 
     const err = (field: string) => zodErrors[field] ?? errors[field as keyof typeof errors];
 
     return (
-        <AuthenticatedLayout
-            header={
-                <h2 className="text-xl font-semibold text-gray-800">
-                    {isEdit ? 'Edit Kelas' : 'Tambah Kelas'}
-                </h2>
-            }
-        >
-            <div className="mx-auto max-w-2xl px-4 py-8">
-                <form onSubmit={submit} className="space-y-5 rounded-lg border bg-white p-6 shadow-sm">
+        <AuthenticatedLayout header={isEdit ? 'Edit Kelas' : 'Tambah Kelas'}>
+            <Head title={isEdit ? 'Edit Kelas' : 'Tambah Kelas'} />
+
+            <div className="mx-auto max-w-2xl">
+                <div className="mb-section-margin flex items-center gap-3">
+                    <a
+                        href="/classrooms"
+                        className="flex h-10 w-10 items-center justify-center rounded-lg border border-outline-variant text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                    >
+                        <span className="material-symbols-outlined">arrow_back</span>
+                    </a>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Nama Kelas</label>
-                        <input
-                            type="text"
+                        <h1 className="text-display-lg font-bold text-primary">
+                            {isEdit ? 'Edit Kelas' : 'Tambah Kelas Baru'}
+                        </h1>
+                        <p className="text-body-sm text-on-surface-variant">
+                            {isEdit ? `Perbarui detail untuk ${classroom!.name}` : 'Buat entitas kelas baru untuk tahun akademik.'}
+                        </p>
+                    </div>
+                </div>
+
+                <form
+                    onSubmit={submit}
+                    className="space-y-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-8 shadow-sm"
+                >
+                    <FormField label="Nama Kelas" htmlFor="name" error={err('name')}>
+                        <TextField
+                            id="name"
                             value={data.name}
-                            onChange={e => setData('name', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            onChange={(e) => setData('name', e.target.value)}
+                            placeholder="Contoh: Umar Bin Khattab A"
                         />
-                        {err('name') && <p className="mt-1 text-xs text-red-600">{err('name')}</p>}
-                    </div>
+                    </FormField>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Tingkat</label>
-                        <input
-                            type="text"
+                    <FormField label="Tingkat" htmlFor="grade_level" error={err('grade_level')}>
+                        <TextField
+                            id="grade_level"
                             value={data.grade_level}
-                            onChange={e => setData('grade_level', e.target.value)}
+                            onChange={(e) => setData('grade_level', e.target.value)}
                             placeholder="Contoh: VII, VIII, IX"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                         />
-                        {err('grade_level') && (
-                            <p className="mt-1 text-xs text-red-600">{err('grade_level')}</p>
-                        )}
-                    </div>
+                    </FormField>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Tahun Ajaran</label>
-                        <input
-                            type="text"
+                    <FormField label="Tahun Ajaran" htmlFor="academic_year" error={err('academic_year')} hint="Format: 2024/2025">
+                        <TextField
+                            id="academic_year"
                             value={data.academic_year}
-                            onChange={e => setData('academic_year', e.target.value)}
-                            placeholder="Contoh: 2024/2025"
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            onChange={(e) => setData('academic_year', e.target.value)}
+                            placeholder="2024/2025"
                         />
-                        {err('academic_year') && (
-                            <p className="mt-1 text-xs text-red-600">{err('academic_year')}</p>
-                        )}
-                    </div>
+                    </FormField>
 
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Wali Kelas</label>
-                        <select
+                    <FormField label="Wali Kelas" htmlFor="homeroom_teacher_id" error={err('homeroom_teacher_id')}>
+                        <SelectField
+                            id="homeroom_teacher_id"
                             value={data.homeroom_teacher_id}
-                            onChange={e => setData('homeroom_teacher_id', e.target.value)}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            onChange={(e) => setData('homeroom_teacher_id', e.target.value)}
                         >
-                            <option value="">-- Belum ditentukan --</option>
-                            {teachers.map(t => (
-                                <option key={t.id} value={t.id}>
-                                    {t.name}
-                                </option>
+                            <option value="">— Belum ditentukan —</option>
+                            {teachers.map((t) => (
+                                <option key={t.id} value={t.id}>{t.name}</option>
                             ))}
-                        </select>
-                        {err('homeroom_teacher_id') && (
-                            <p className="mt-1 text-xs text-red-600">{err('homeroom_teacher_id')}</p>
-                        )}
-                    </div>
+                        </SelectField>
+                    </FormField>
 
-                    <div className="flex gap-3 pt-2">
-                        <button
-                            type="submit"
-                            disabled={processing}
-                            className="rounded-md bg-indigo-600 px-5 py-2 text-sm text-white hover:bg-indigo-700 disabled:opacity-60"
-                        >
-                            {processing ? 'Menyimpan...' : 'Simpan'}
-                        </button>
-                        <a
-                            href="/classrooms"
-                            className="rounded-md border px-5 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                        >
-                            Batal
-                        </a>
-                    </div>
+                    <FormActions cancelHref="/classrooms" processing={processing} />
                 </form>
             </div>
         </AuthenticatedLayout>
