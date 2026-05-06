@@ -1,0 +1,261 @@
+<!doctype html>
+
+<html class="light" lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+            rel="stylesheet"
+        />
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <script id="tailwind-config">
+            tailwind.config = {
+                darkMode: 'class',
+                theme: {
+                    extend: {
+                        colors: {
+                            primary: '#006948',
+                            error: '#ba1a1a',
+                            'on-primary-fixed-variant': '#005137',
+                            'inverse-on-surface': '#ecf2ec',
+                            'on-surface': '#171d19',
+                            'surface-container-high': '#e4eae4',
+                            'on-secondary-container': '#626566',
+                            'tertiary-fixed-dim': '#c3c7cd',
+                            'on-primary-fixed': '#002114',
+                            'on-background': '#171d19',
+                            'outline-variant': '#bccac0',
+                            'on-error': '#ffffff',
+                            'surface-tint': '#006c4a',
+                            'primary-fixed': '#85f8c4',
+                            'on-primary-container': '#f5fff7',
+                            outline: '#6d7a72',
+                            'tertiary-container': '#70757a',
+                            'surface-container': '#e9efe9',
+                            'on-secondary-fixed': '#191c1d',
+                            'inverse-surface': '#2c322e',
+                            'surface-container-lowest': '#ffffff',
+                            'secondary-fixed-dim': '#c5c7c8',
+                            'on-tertiary-fixed-variant': '#43474c',
+                            'surface-container-low': '#eff5ef',
+                            'on-secondary': '#ffffff',
+                            'on-secondary-fixed-variant': '#454748',
+                            tertiary: '#585c62',
+                            'on-tertiary': '#ffffff',
+                            'tertiary-fixed': '#dfe3e9',
+                            'on-tertiary-fixed': '#171c20',
+                            'inverse-primary': '#68dba9',
+                            'on-surface-variant': '#3d4a42',
+                            'surface-bright': '#f5fbf5',
+                            'secondary-container': '#e1e3e4',
+                            'on-tertiary-container': '#fcfcff',
+                            background: '#f5fbf5',
+                            'on-error-container': '#93000a',
+                            'surface-variant': '#dee4de',
+                            surface: '#f5fbf5',
+                            'secondary-fixed': '#e1e3e4',
+                            secondary: '#5c5f60',
+                            'surface-container-highest': '#dee4de',
+                            'on-primary': '#ffffff',
+                            'error-container': '#ffdad6',
+                            'primary-container': '#00855d',
+                            'primary-fixed-dim': '#68dba9',
+                            'surface-dim': '#d5dcd6',
+                        },
+                        borderRadius: {
+                            DEFAULT: '0.125rem',
+                            lg: '0.25rem',
+                            xl: '0.5rem',
+                            full: '0.75rem',
+                        },
+                        spacing: {
+                            xl: '40px',
+                            'sidebar-width': '260px',
+                            base: '4px',
+                            md: '16px',
+                            lg: '24px',
+                            xs: '4px',
+                            'container-max': '1280px',
+                            sm: '8px',
+                        },
+                        fontFamily: {
+                            'body-sm': ['Inter'],
+                            'label-caps': ['Inter'],
+                            h3: ['Inter'],
+                            button: ['Inter'],
+                            h1: ['Inter'],
+                            'body-lg': ['Inter'],
+                            h2: ['Inter'],
+                            'body-md': ['Inter'],
+                        },
+                        fontSize: {
+                            'body-sm': ['14px', { lineHeight: '20px', fontWeight: '400' }],
+                            'label-caps': ['12px', { lineHeight: '16px', letterSpacing: '0.05em', fontWeight: '600' }],
+                            h3: ['20px', { lineHeight: '28px', fontWeight: '600' }],
+                            button: ['14px', { lineHeight: '20px', fontWeight: '500' }],
+                            h1: ['30px', { lineHeight: '38px', letterSpacing: '-0.02em', fontWeight: '700' }],
+                            'body-lg': ['18px', { lineHeight: '28px', fontWeight: '400' }],
+                            h2: ['24px', { lineHeight: '32px', letterSpacing: '-0.01em', fontWeight: '600' }],
+                            'body-md': ['16px', { lineHeight: '24px', fontWeight: '400' }],
+                        },
+                    },
+                },
+            };
+        </script>
+        <style>
+            .geometric-pattern {
+                background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuCJbQDiGgK0y8o-Z3yuCxoGky6qVVYspMDvd2Qrxv1bD321p8xL-bj0U4yA3k6411EJgig_h0Q_vGywWvhuIOFYUReYE_-dY6UQ3zP7Zr7njQzbwNnl65GmPQuznYTnJ4LcLvg_rdCYhXK_G4wdM7B5iRPshnYgkhCEumMgqSJz81uN9yqteMey-4dcDnYdVPpPJMqLCXrLpK4gg2Lt3-PyvdcuQNh12MRprwwIZh_csgS0kMjtGzGl_rOC2wFfX0Jff4oy0GCv4MY);
+                background-repeat: repeat;
+                background-size: 400px;
+                opacity: 0.04;
+            }
+        </style>
+    </head>
+    <body class="bg-background font-body-md text-on-surface flex flex-col min-h-screen relative">
+        <!-- Background Pattern Overlay -->
+        <div
+            class="fixed inset-0 pointer-events-none geometric-pattern z-0"
+            data-alt="A subtle, light grey Islamic geometric pattern spread across a vast canvas. The lines are delicate and thin, creating a professional and minimalist background for a corporate academic application. The pattern is low contrast, ensuring high legibility for foreground elements. It evokes a sense of tradition and modern order through geometric symmetry."
+        ></div>
+        <main class="flex-grow flex flex-col md:flex-row z-10">
+            <!-- Left Side: Brand Identity -->
+            <section class="hidden md:flex w-1/2 flex-col items-center justify-center p-xl">
+                <div class="max-w-md text-center">
+                    <img
+                        alt="e-Taqrir Logo"
+                        class="w-64 h-64 object-contain mx-auto mb-lg"
+                        data-alt="A minimalist logo for e-Taqrir featuring a stylized emerald green open book with a rising arrow and a small crescent moon integrated into the design. The style is flat vector, emphasizing professional and clean aesthetics. The logo sits against a pristine white background, representing clarity and academic excellence. The emerald green color is rich and authoritative."
+                        src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGisl6UJyHM0LfbSrCvGh41KQfO0SZAEM_XIzOWY0b9VHDVIWUaFYRO_w8c0XGJsXSD5QhCrYfW0yxzk-Vt7W_ToEPxdSAeDP0VFW-0FTtqREnB1DsCKs9zZajvyUSMICyQTOT-ubLlUx-_op__0HkGNAok7IUAJRuXnKdbnTfIHNocDoG8B36O8GmmtjZpW_TIuZK8Be0bjFFnXbqnM99ZHXwHoPWcahMTf9s4T_eFfL3h1K0OJdNHbAbppkT9jRHkNs0OvPg6mM"
+                    />
+                    <h2 class="font-h1 text-h1 text-primary mb-md">e-Taqrir</h2>
+                    <p class="font-body-lg text-body-lg text-on-surface-variant max-w-sm mx-auto">
+                        Integrated Academic Management and Student Reporting System for Habiburrahman
+                    </p>
+                </div>
+            </section>
+            <!-- Right Side: Login Form -->
+            <section class="w-full md:w-1/2 flex items-center justify-center p-md md:p-xl">
+                <div
+                    class="w-full max-w-md bg-surface-container-lowest border border-outline-variant rounded-lg shadow-sm p-lg md:p-xl flex flex-col space-y-lg"
+                >
+                    <!-- Form Header -->
+                    <div class="space-y-xs">
+                        <h1 class="font-h2 text-h2 text-on-surface">Welcome back</h1>
+                        <p class="font-body-sm text-body-sm text-on-surface-variant">
+                            Please enter your details to access your account.
+                        </p>
+                    </div>
+                    <!-- Form Fields -->
+                    <form class="flex flex-col space-y-md">
+                        <div class="space-y-xs">
+                            <label
+                                class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider"
+                                for="username"
+                                >Username or Email</label
+                            >
+                            <div class="relative">
+                                <span
+                                    class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline"
+                                    >person</span
+                                >
+                                <input
+                                    class="w-full pl-xl pr-md py-md bg-surface border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all font-body-md text-on-surface outline-none"
+                                    id="username"
+                                    placeholder="Enter your username"
+                                    type="text"
+                                />
+                            </div>
+                        </div>
+                        <div class="space-y-xs">
+                            <div class="flex justify-between items-center">
+                                <label
+                                    class="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-wider"
+                                    for="password"
+                                    >Password</label
+                                >
+                                <a
+                                    class="font-body-sm text-body-sm text-primary hover:underline transition-all"
+                                    href="#"
+                                    >Forgot Password?</a
+                                >
+                            </div>
+                            <div class="relative">
+                                <span
+                                    class="material-symbols-outlined absolute left-md top-1/2 -translate-y-1/2 text-outline"
+                                    >lock</span
+                                >
+                                <input
+                                    class="w-full pl-xl pr-md py-md bg-surface border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all font-body-md text-on-surface outline-none"
+                                    id="password"
+                                    placeholder="••••••••"
+                                    type="password"
+                                />
+                            </div>
+                        </div>
+                        <!-- Remember Me -->
+                        <div class="flex items-center space-x-sm">
+                            <input
+                                class="w-4 h-4 text-primary border-outline-variant rounded-sm focus:ring-primary"
+                                id="remember"
+                                type="checkbox"
+                            />
+                            <label class="font-body-sm text-body-sm text-on-surface" for="remember"
+                                >Remember me for 30 days</label
+                            >
+                        </div>
+                        <!-- Primary Action -->
+                        <button
+                            class="w-full bg-primary-container hover:opacity-90 text-on-primary-container font-button text-button py-md rounded-lg shadow-sm transition-all flex items-center justify-center space-x-sm"
+                            type="submit"
+                        >
+                            <span>Sign In</span>
+                            <span class="material-symbols-outlined text-sm">login</span>
+                        </button>
+                    </form>
+                    <!-- Alternative Action -->
+                    <div class="pt-md border-t border-outline-variant text-center">
+                        <p class="font-body-sm text-body-sm text-on-surface-variant">
+                            Don't have an account yet?
+                            <a class="text-primary font-semibold hover:underline" href="#">Contact Administrator</a>
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </main>
+        <!-- Footer Segment -->
+        <footer
+            class="z-10 bg-surface border-t border-outline-variant px-xl py-lg w-full flex flex-col md:flex-row justify-between items-center space-y-md md:space-y-0"
+        >
+            <div class="flex flex-col md:flex-row items-center md:space-x-lg space-y-sm md:space-y-0">
+                <span class="font-label-caps text-label-caps font-semibold text-on-surface-variant"
+                    >e-Taqrir Portal</span
+                >
+                <p class="font-body-sm text-body-sm text-on-surface-variant">
+                    © 2024 Al-Ma'arif Islamic Boarding School. All rights reserved.
+                </p>
+            </div>
+            <nav class="flex space-x-lg">
+                <a
+                    class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                    href="#"
+                    >Privacy Policy</a
+                >
+                <a
+                    class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                    href="#"
+                    >Terms of Service</a
+                >
+                <a
+                    class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary transition-colors"
+                    href="#"
+                    >Help Center</a
+                >
+            </nav>
+        </footer>
+    </body>
+</html>
