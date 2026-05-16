@@ -24,20 +24,10 @@ class SubjectController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        return Inertia::render('Subjects/Form');
-    }
-
     public function store(StoreSubjectRequest $request): RedirectResponse
     {
         Subject::create($request->validated());
         return redirect()->route('subjects.index')->with('success', 'Mata pelajaran berhasil ditambahkan.');
-    }
-
-    public function edit(Subject $subject): Response
-    {
-        return Inertia::render('Subjects/Form', ['subject' => $subject]);
     }
 
     public function update(UpdateSubjectRequest $request, Subject $subject): RedirectResponse

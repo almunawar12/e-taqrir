@@ -34,13 +34,13 @@ Route::middleware('auth')->group(function () {
         ->name('role.switch');
 
     // Master Data
-    Route::resource('classrooms', ClassroomController::class)->except(['show']);
+    Route::resource('classrooms', ClassroomController::class)->except(['show', 'create', 'edit']);
     Route::post('classrooms/{id}/restore', [ClassroomController::class, 'restore'])->name('classrooms.restore');
 
-    Route::resource('subjects', SubjectController::class)->except(['show']);
+    Route::resource('subjects', SubjectController::class)->except(['show', 'create', 'edit']);
     Route::post('subjects/{id}/restore', [SubjectController::class, 'restore'])->name('subjects.restore');
 
-    Route::resource('students', StudentController::class)->except(['show']);
+    Route::resource('students', StudentController::class)->except(['show', 'create', 'edit']);
     Route::post('students/{id}/restore', [StudentController::class, 'restore'])->name('students.restore');
 
     // Assessment Workflow

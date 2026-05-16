@@ -28,25 +28,10 @@ class StudentController extends Controller
         ]);
     }
 
-    public function create(): Response
-    {
-        return Inertia::render('Students/Form', [
-            'classrooms' => Classroom::select('id', 'name')->orderBy('name')->get(),
-        ]);
-    }
-
     public function store(StoreStudentRequest $request): RedirectResponse
     {
         Student::create($request->validated());
         return redirect()->route('students.index')->with('success', 'Santri berhasil ditambahkan.');
-    }
-
-    public function edit(Student $student): Response
-    {
-        return Inertia::render('Students/Form', [
-            'student' => $student,
-            'classrooms' => Classroom::select('id', 'name')->orderBy('name')->get(),
-        ]);
     }
 
     public function update(UpdateStudentRequest $request, Student $student): RedirectResponse

@@ -24,13 +24,7 @@ class ClassroomController extends Controller
         return Inertia::render('Classrooms/Index', [
             'classrooms' => $classrooms,
             'filters' => $request->only('search'),
-        ]);
-    }
-
-    public function create(): Response
-    {
-        return Inertia::render('Classrooms/Form', [
-            'teachers' => User::role('wali_kelas')->orRole('super_admin')->select('id', 'name')->orderBy('name')->get(),
+            'teachers' => User::role(['wali_kelas', 'super_admin'])->select('id', 'name')->orderBy('name')->get(),
         ]);
     }
 
@@ -38,14 +32,6 @@ class ClassroomController extends Controller
     {
         Classroom::create($request->validated());
         return redirect()->route('classrooms.index')->with('success', 'Kelas berhasil ditambahkan.');
-    }
-
-    public function edit(Classroom $classroom): Response
-    {
-        return Inertia::render('Classrooms/Form', [
-            'classroom' => $classroom,
-            'teachers' => User::role('wali_kelas')->orRole('super_admin')->select('id', 'name')->orderBy('name')->get(),
-        ]);
     }
 
     public function update(UpdateClassroomRequest $request, Classroom $classroom): RedirectResponse

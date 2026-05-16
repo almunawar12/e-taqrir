@@ -1,12 +1,25 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import CrudModal from '@/Components/CrudModal';
 import PageHero from '@/Components/PageHero';
 import Pagination from '@/Components/Pagination';
 import StatCard from '@/Components/StatCard';
+import { FormField, SelectField, TextField } from '@/Components/FormField';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useActiveRole } from '@/hooks/useActiveRole';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { FormEvent, useState } from 'react';
+import { toast } from '@/Components/Toast';
+import { z } from 'zod';
 import type { PageProps } from '@/types';
+
+const schema = z.object({
+    name:                z.string().min(1, 'Nama kelas wajib diisi').max(100),
+    grade_level:         z.string().min(1, 'Tingkat wajib diisi').max(50),
+    academic_year:       z.string().regex(/^\d{4}\/\d{4}$/, 'Format: YYYY/YYYY (contoh: 2024/2025)'),
+    homeroom_teacher_id: z.string().optional(),
+});
+
+interface Teacher { id: number; name: string }
 
 interface Classroom {
     id: number;
@@ -30,6 +43,7 @@ interface Paginated {
 
 interface Props extends PageProps {
     classrooms: Paginated;
+    teachers: Teacher[];
     filters: { search?: string };
 }
 
@@ -39,19 +53,134 @@ const GRADE_TONE: Record<string, string> = {
     IX:   'bg-tertiary-fixed text-on-tertiary-fixed-variant',
 };
 
-function ClassroomCard({ classroom, canEdit, canDelete, onDelete }: {
+// ─── Form inside modal ──────────────────────────────────────────────────────
+function ClassroomForm({
+    classroom,
+    teachers,
+    onClose,
+}: {
+    classroom?: Classroom;
+    teachers: Teacher[];
+    onClose: () => void;
+}) {
+    const isEdit = !!classroom;
+
+    const { data, setData, post, put, processing, errors } = useForm({
+        name:                classroom?.name ?? '',
+        grade_level:         classroom?.grade_level ?? '',
+        academic_year:       classroom?.academic_year ?? '',
+        homeroom_teacher_id: classroom?.homeroom_teacher?.id ? String(classroom.homeroom_teacher.id) : '',
+    });
+
+    const [zodErrors, setZodErrors] = useState<Record<string, string>>({});
+
+    const submit = (e: FormEvent) => {
+        e.preventDefault();
+        const result = schema.safeParse(data);
+        if (!result.success) {
+            const errs: Record<string, string> = {};
+            result.error.issues.forEach((issue) => {
+                if (issue.path[0]) errs[String(issue.path[0])] = issue.message;
+            });
+            setZodErrors(errs);
+            return;
+        }
+        setZodErrors({});
+        if (isEdit) {
+            put(`/classrooms/${classroom!.id}`, { onSuccess: onClose });
+        } else {
+            post('/classrooms', { onSuccess: onClose });
+        }
+    };
+
+    const err = (field: string) => zodErrors[field] ?? errors[field as keyof typeof errors];
+
+    return (
+        <form onSubmit={submit} className="space-y-5">
+            <FormField label="Nama Kelas" htmlFor="name" error={err('name')}>
+                <TextField
+                    id="name"
+                    value={data.name}
+                    onChange={(e) => setData('name', e.target.value)}
+                    placeholder="Contoh: Umar Bin Khattab A"
+                />
+            </FormField>
+
+            <FormField label="Tingkat" htmlFor="grade_level" error={err('grade_level')}>
+                <TextField
+                    id="grade_level"
+                    value={data.grade_level}
+                    onChange={(e) => setData('grade_level', e.target.value)}
+                    placeholder="Contoh: VII, VIII, IX"
+                />
+            </FormField>
+
+            <FormField label="Tahun Ajaran" htmlFor="academic_year" error={err('academic_year')} hint="Format: 2024/2025">
+                <TextField
+                    id="academic_year"
+                    value={data.academic_year}
+                    onChange={(e) => setData('academic_year', e.target.value)}
+                    placeholder="2024/2025"
+                />
+            </FormField>
+
+            <FormField label="Wali Kelas" htmlFor="homeroom_teacher_id" error={err('homeroom_teacher_id')}>
+                <SelectField
+                    id="homeroom_teacher_id"
+                    value={data.homeroom_teacher_id}
+                    onChange={(e) => setData('homeroom_teacher_id', e.target.value)}
+                >
+                    <option value="">— Belum ditentukan —</option>
+                    {teachers.map((t) => (
+                        <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                </SelectField>
+            </FormField>
+
+            <div className="flex items-center justify-end gap-3 border-t border-outline-variant pt-5">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-lg border border-outline-variant px-5 py-2.5 text-button text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                >
+                    Batal
+                </button>
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-button font-semibold text-on-primary shadow-sm transition-all hover:brightness-110 disabled:opacity-60"
+                >
+                    {processing && (
+                        <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                    )}
+                    {processing ? 'Menyimpan...' : 'Simpan'}
+                </button>
+            </div>
+        </form>
+    );
+}
+
+// ─── Card ────────────────────────────────────────────────────────────────────
+function ClassroomCard({
+    classroom,
+    canEdit,
+    canDelete,
+    onEdit,
+    onDelete,
+}: {
     classroom: Classroom;
     canEdit: boolean;
     canDelete: boolean;
+    onEdit: () => void;
     onDelete: () => void;
 }) {
     const tone = GRADE_TONE[classroom.grade_level] ?? 'bg-surface-container-high text-on-surface-variant';
-    const cap  = 30;
+    const cap   = 30;
     const ratio = classroom.students_count / cap;
     const status = ratio >= 1
-        ? { label: '(PENUH)',         color: 'text-error' }
+        ? { label: '(PENUH)',        color: 'text-error' }
         : ratio >= 0.85
-        ? { label: '(Hampir penuh)',  color: 'text-primary' }
+        ? { label: '(Hampir penuh)', color: 'text-primary' }
         : null;
 
     return (
@@ -96,13 +225,14 @@ function ClassroomCard({ classroom, canEdit, canDelete, onDelete }: {
                 <span className="text-label-caps text-on-surface-variant">ID #{classroom.id}</span>
                 <div className="flex items-center gap-1">
                     {canEdit && (
-                        <Link
-                            href={`/classrooms/${classroom.id}/edit`}
+                        <button
+                            type="button"
+                            onClick={onEdit}
                             className="flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-all hover:bg-primary/10 hover:text-primary"
                             aria-label="Edit"
                         >
                             <span className="material-symbols-outlined text-[20px]">edit</span>
-                        </Link>
+                        </button>
                     )}
                     {canDelete && (
                         <button
@@ -120,10 +250,11 @@ function ClassroomCard({ classroom, canEdit, canDelete, onDelete }: {
     );
 }
 
-function AddClassroomCard() {
+function AddClassroomCard({ onClick }: { onClick: () => void }) {
     return (
-        <Link
-            href="/classrooms/create"
+        <button
+            type="button"
+            onClick={onClick}
             className="group flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-outline-variant bg-surface-container-low p-10 transition-all hover:bg-surface-container-high"
         >
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-surface text-outline transition-all group-hover:bg-primary group-hover:text-on-primary">
@@ -135,15 +266,19 @@ function AddClassroomCard() {
             <p className="mt-2 text-center text-body-sm text-on-surface-variant/70">
                 Buat entitas kelas baru untuk tahun akademik.
             </p>
-        </Link>
+        </button>
     );
 }
 
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function ClassroomsIndex() {
-    const { classrooms, filters } = usePage<Props>().props;
+    const { classrooms, teachers, filters } = usePage<Props>().props;
     const { active } = useActiveRole();
     const [search, setSearch] = useState(filters.search ?? '');
     const { confirm, dialog } = useConfirm();
+
+    const [modalOpen, setModalOpen]   = useState(false);
+    const [editItem, setEditItem]     = useState<Classroom | undefined>(undefined);
 
     const canCreate = active === 'super_admin';
     const canEdit   = active === 'super_admin' || active === 'wali_kelas';
@@ -153,23 +288,44 @@ export default function ClassroomsIndex() {
         router.get('/classrooms', { search, ...params }, { preserveState: true, replace: true });
     };
 
+    const openCreate = () => { setEditItem(undefined); setModalOpen(true); };
+    const openEdit   = (c: Classroom) => { setEditItem(c); setModalOpen(true); };
+    const closeModal = () => setModalOpen(false);
+
     const handleDelete = (c: Classroom) => {
         confirm({
             title: 'Hapus kelas?',
             message: `Kelas "${c.name}" akan dihapus. Tindakan ini tidak bisa dibatalkan.`,
             tone: 'danger',
             confirmLabel: 'Hapus',
-            onConfirm: (done) => router.delete(`/classrooms/${c.id}`, { onFinish: done }),
+            onConfirm: (done) =>
+                router.delete(`/classrooms/${c.id}`, {
+                    onSuccess: () => toast.success('Kelas berhasil dihapus.'),
+                    onFinish: done,
+                }),
         });
     };
 
     const totalStudents = classrooms.data.reduce((sum, c) => sum + c.students_count, 0);
-    const teachers = new Set(classrooms.data.map((c) => c.homeroom_teacher?.id).filter(Boolean));
+    const teacherSet    = new Set(classrooms.data.map((c) => c.homeroom_teacher?.id).filter(Boolean));
 
     return (
         <AuthenticatedLayout header="Manajemen Kelas">
             <Head title="Kelas" />
             {dialog}
+
+            <CrudModal
+                show={modalOpen}
+                title={editItem ? `Edit ${editItem.name}` : 'Tambah Kelas Baru'}
+                onClose={closeModal}
+            >
+                <ClassroomForm
+                    key={editItem?.id ?? 'create'}
+                    classroom={editItem}
+                    teachers={teachers}
+                    onClose={closeModal}
+                />
+            </CrudModal>
 
             <PageHero
                 icon="school"
@@ -179,23 +335,24 @@ export default function ClassroomsIndex() {
 
             {/* Stats */}
             <section className="mb-section-margin grid grid-cols-1 gap-card-gap md:grid-cols-2 lg:grid-cols-4">
-                <StatCard label="Total Kelas"   value={classrooms.total} icon="meeting_room"        tone="secondary" />
-                <StatCard label="Total Santri"  value={totalStudents}         icon="person"              tone="primary"   badge={`Avg ${Math.round(totalStudents / Math.max(classrooms.data.length, 1))}/kelas`} />
-                <StatCard label="Wali Kelas"    value={teachers.size}         icon="supervisor_account"  tone="tertiary" />
-                <StatCard label="Tahun Ajaran"  value={classrooms.data[0]?.academic_year ?? '—'} icon="calendar_today" tone="neutral" />
+                <StatCard label="Total Kelas"  value={classrooms.total}  icon="meeting_room"       tone="secondary" />
+                <StatCard label="Total Santri" value={totalStudents}      icon="person"             tone="primary"  badge={`Avg ${Math.round(totalStudents / Math.max(classrooms.data.length, 1))}/kelas`} />
+                <StatCard label="Wali Kelas"   value={teacherSet.size}    icon="supervisor_account" tone="tertiary" />
+                <StatCard label="Tahun Ajaran" value={classrooms.data[0]?.academic_year ?? '—'} icon="calendar_today" tone="neutral" />
             </section>
 
             {/* Toolbar */}
             <div className="mb-6 flex flex-col items-stretch justify-between gap-4 md:flex-row md:items-center">
                 <div className="flex items-center gap-2">
                     {canCreate && (
-                        <Link
-                            href="/classrooms/create"
+                        <button
+                            type="button"
+                            onClick={openCreate}
                             className="flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-button font-semibold text-on-primary shadow-sm transition-all hover:brightness-110"
                         >
                             <span className="material-symbols-outlined text-[20px]">add</span>
                             Tambah Kelas
-                        </Link>
+                        </button>
                     )}
                 </div>
                 <div className="relative">
@@ -221,10 +378,13 @@ export default function ClassroomsIndex() {
                         classroom={c}
                         canEdit={canEdit}
                         canDelete={canDelete}
+                        onEdit={() => openEdit(c)}
                         onDelete={() => handleDelete(c)}
                     />
                 ))}
-                {canCreate && classrooms.current_page === classrooms.last_page && <AddClassroomCard />}
+                {canCreate && classrooms.current_page === classrooms.last_page && (
+                    <AddClassroomCard onClick={openCreate} />
+                )}
             </div>
 
             {/* Pagination */}

@@ -1,12 +1,23 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
+import CrudModal from '@/Components/CrudModal';
 import PageHero from '@/Components/PageHero';
 import Pagination from '@/Components/Pagination';
 import StatCard from '@/Components/StatCard';
+import { FormField, TextField } from '@/Components/FormField';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useActiveRole } from '@/hooks/useActiveRole';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { FormEvent, useState } from 'react';
+import { toast } from '@/Components/Toast';
+import { z } from 'zod';
 import type { PageProps } from '@/types';
+
+const schema = z.object({
+    code:         z.string().min(1, 'Kode wajib diisi').max(20),
+    name:         z.string().min(1, 'Nama mapel wajib diisi').max(150),
+    category:     z.string().min(1, 'Kategori wajib diisi').max(100),
+    credit_hours: z.number().int('Harus bilangan bulat').min(1, 'Minimal 1').max(8, 'Maksimal 8'),
+});
 
 interface Subject {
     id: number;
@@ -31,11 +42,124 @@ interface Props extends PageProps {
     filters: { search?: string };
 }
 
+// ─── Form inside modal ──────────────────────────────────────────────────────
+function SubjectForm({
+    subject,
+    onClose,
+}: {
+    subject?: Subject;
+    onClose: () => void;
+}) {
+    const isEdit = !!subject;
+
+    const { data, setData, post, put, processing, errors } = useForm({
+        code:         subject?.code ?? '',
+        name:         subject?.name ?? '',
+        category:     subject?.category ?? '',
+        credit_hours: subject?.credit_hours ?? 1,
+    });
+
+    const [zodErrors, setZodErrors] = useState<Record<string, string>>({});
+
+    const submit = (e: FormEvent) => {
+        e.preventDefault();
+        const result = schema.safeParse({ ...data, credit_hours: Number(data.credit_hours) });
+        if (!result.success) {
+            const errs: Record<string, string> = {};
+            result.error.issues.forEach((issue) => {
+                if (issue.path[0]) errs[String(issue.path[0])] = issue.message;
+            });
+            setZodErrors(errs);
+            return;
+        }
+        setZodErrors({});
+        if (isEdit) {
+            put(`/subjects/${subject!.id}`, { onSuccess: onClose });
+        } else {
+            post('/subjects', { onSuccess: onClose });
+        }
+    };
+
+    const err = (field: string) => zodErrors[field] ?? errors[field as keyof typeof errors];
+
+    return (
+        <form onSubmit={submit} className="space-y-5">
+            <div className="grid grid-cols-3 gap-4">
+                <div className="col-span-1">
+                    <FormField label="Kode" htmlFor="code" error={err('code')}>
+                        <TextField
+                            id="code"
+                            value={data.code}
+                            onChange={(e) => setData('code', e.target.value)}
+                            placeholder="MAT-101"
+                        />
+                    </FormField>
+                </div>
+                <div className="col-span-2">
+                    <FormField label="Nama Mata Pelajaran" htmlFor="name" error={err('name')}>
+                        <TextField
+                            id="name"
+                            value={data.name}
+                            onChange={(e) => setData('name', e.target.value)}
+                            placeholder="Contoh: Fiqih Ibadah"
+                        />
+                    </FormField>
+                </div>
+            </div>
+
+            <FormField label="Kategori" htmlFor="category" error={err('category')}>
+                <TextField
+                    id="category"
+                    value={data.category}
+                    onChange={(e) => setData('category', e.target.value)}
+                    placeholder="Contoh: Pendidikan Agama, Sains & Teknologi"
+                />
+            </FormField>
+
+            <FormField label="Jam Pelajaran (SKS)" htmlFor="credit_hours" error={err('credit_hours')} hint="Antara 1 sampai 8 jam">
+                <TextField
+                    id="credit_hours"
+                    type="number"
+                    min={1}
+                    max={8}
+                    value={data.credit_hours}
+                    onChange={(e) => setData('credit_hours', Number(e.target.value))}
+                    className="w-32"
+                />
+            </FormField>
+
+            <div className="flex items-center justify-end gap-3 border-t border-outline-variant pt-5">
+                <button
+                    type="button"
+                    onClick={onClose}
+                    className="rounded-lg border border-outline-variant px-5 py-2.5 text-button text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                >
+                    Batal
+                </button>
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-button font-semibold text-on-primary shadow-sm transition-all hover:brightness-110 disabled:opacity-60"
+                >
+                    {processing && (
+                        <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>
+                    )}
+                    {processing ? 'Menyimpan...' : 'Simpan'}
+                </button>
+            </div>
+        </form>
+    );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 export default function SubjectsIndex() {
     const { subjects, filters } = usePage<Props>().props;
     const { active } = useActiveRole();
     const [search, setSearch] = useState(filters.search ?? '');
     const { confirm, dialog } = useConfirm();
+
+    const [modalOpen, setModalOpen] = useState(false);
+    const [editItem, setEditItem]   = useState<Subject | undefined>(undefined);
 
     const isAdmin = active === 'super_admin';
 
@@ -43,23 +167,43 @@ export default function SubjectsIndex() {
         router.get('/subjects', { search, ...params }, { preserveState: true, replace: true });
     };
 
+    const openCreate = () => { setEditItem(undefined); setModalOpen(true); };
+    const openEdit   = (s: Subject) => { setEditItem(s); setModalOpen(true); };
+    const closeModal = () => setModalOpen(false);
+
     const handleDelete = (s: Subject) => {
         confirm({
             title: 'Hapus mata pelajaran?',
             message: `Mapel "${s.name}" akan dihapus.`,
             tone: 'danger',
             confirmLabel: 'Hapus',
-            onConfirm: (done) => router.delete(`/subjects/${s.id}`, { onFinish: done }),
+            onConfirm: (done) =>
+                router.delete(`/subjects/${s.id}`, {
+                    onSuccess: () => toast.success('Mata pelajaran berhasil dihapus.'),
+                    onFinish: done,
+                }),
         });
     };
 
     const categories = new Set(subjects.data.map((s) => s.category));
-    const totalSks = subjects.data.reduce((sum, s) => sum + s.credit_hours, 0);
+    const totalSks   = subjects.data.reduce((sum, s) => sum + s.credit_hours, 0);
 
     return (
         <AuthenticatedLayout header="Mata Pelajaran">
             <Head title="Mata Pelajaran" />
             {dialog}
+
+            <CrudModal
+                show={modalOpen}
+                title={editItem ? `Edit ${editItem.name}` : 'Tambah Mata Pelajaran'}
+                onClose={closeModal}
+            >
+                <SubjectForm
+                    key={editItem?.id ?? 'create'}
+                    subject={editItem}
+                    onClose={closeModal}
+                />
+            </CrudModal>
 
             <PageHero
                 icon="auto_stories"
@@ -80,13 +224,14 @@ export default function SubjectsIndex() {
                 <div className="flex flex-col items-stretch justify-between gap-4 border-b border-outline-variant p-6 md:flex-row md:items-center">
                     <div className="flex items-center gap-3">
                         {isAdmin && (
-                            <Link
-                                href="/subjects/create"
+                            <button
+                                type="button"
+                                onClick={openCreate}
                                 className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-button font-semibold text-on-primary shadow-sm transition-all hover:brightness-110"
                             >
                                 <span className="material-symbols-outlined">add</span>
                                 Tambah Pelajaran
-                            </Link>
+                            </button>
                         )}
                         <p className="text-body-sm text-on-surface-variant">
                             Total <span className="font-bold text-on-surface">{subjects.total}</span> entri
@@ -123,12 +268,8 @@ export default function SubjectsIndex() {
                             {subjects.data.length === 0 ? (
                                 <tr>
                                     <td colSpan={isAdmin ? 5 : 4} className="px-6 py-16 text-center">
-                                        <span className="material-symbols-outlined text-[40px] text-on-surface-variant/40">
-                                            inbox
-                                        </span>
-                                        <p className="mt-2 text-body-sm text-on-surface-variant">
-                                            Tidak ada mata pelajaran.
-                                        </p>
+                                        <span className="material-symbols-outlined text-[40px] text-on-surface-variant/40">inbox</span>
+                                        <p className="mt-2 text-body-sm text-on-surface-variant">Tidak ada mata pelajaran.</p>
                                     </td>
                                 </tr>
                             ) : (
@@ -139,25 +280,20 @@ export default function SubjectsIndex() {
                                                 {s.code}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-5 text-body-base font-semibold text-on-surface">
-                                            {s.name}
-                                        </td>
-                                        <td className="px-6 py-5 text-body-sm text-on-surface-variant">
-                                            {s.category}
-                                        </td>
-                                        <td className="px-6 py-5 text-body-sm text-on-surface-variant">
-                                            {s.credit_hours} jam
-                                        </td>
+                                        <td className="px-6 py-5 text-body-base font-semibold text-on-surface">{s.name}</td>
+                                        <td className="px-6 py-5 text-body-sm text-on-surface-variant">{s.category}</td>
+                                        <td className="px-6 py-5 text-body-sm text-on-surface-variant">{s.credit_hours} jam</td>
                                         {isAdmin && (
                                             <td className="px-6 py-5 text-right">
                                                 <div className="flex justify-end gap-1">
-                                                    <Link
-                                                        href={`/subjects/${s.id}/edit`}
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openEdit(s)}
                                                         className="flex h-9 w-9 items-center justify-center rounded-lg text-outline transition-all hover:bg-primary/5 hover:text-primary"
                                                         aria-label="Edit"
                                                     >
                                                         <span className="material-symbols-outlined text-[20px]">edit</span>
-                                                    </Link>
+                                                    </button>
                                                     <button
                                                         type="button"
                                                         onClick={() => handleDelete(s)}
