@@ -16,7 +16,9 @@ const NAV_ITEMS: NavItem[] = [
       roles: ['super_admin', 'wali_kelas'] },
     { label: 'Santri',         href: '/students',    icon: 'group',      routeName: 'students.*',
       roles: ['super_admin', 'wali_kelas'] },
-    { label: 'Mata Pelajaran', href: '/subjects',    icon: 'book',       routeName: 'subjects.*',
+    { label: 'Mata Pelajaran', href: '/subjects',    icon: 'book',           routeName: 'subjects.*',
+      roles: ['super_admin'] },
+    { label: 'Pengguna',      href: '/users',       icon: 'manage_accounts', routeName: 'users.*',
       roles: ['super_admin'] },
 ];
 

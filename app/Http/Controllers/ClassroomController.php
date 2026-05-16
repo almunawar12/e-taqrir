@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreClassroomRequest;
 use App\Http\Requests\UpdateClassroomRequest;
 use App\Models\Classroom;
+use App\Models\Student;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,8 +24,33 @@ class ClassroomController extends Controller
 
         return Inertia::render('Classrooms/Index', [
             'classrooms' => $classrooms,
-            'filters' => $request->only('search'),
-            'teachers' => User::role(['wali_kelas', 'super_admin'])->select('id', 'name')->orderBy('name')->get(),
+            'filters'    => $request->only('search'),
+            'teachers'   => User::role(['wali_kelas', 'super_admin'])->select('id', 'name')->orderBy('name')->get(),
+        ]);
+    }
+
+    public function show(Request $request, Classroom $classroom): Response
+    {
+        $this->authorize('viewAny', Classroom::class);
+
+        $assigned = $classroom->students()
+            ->orderBy('name')
+            ->get(['id', 'nis', 'name', 'gender']);
+
+        $unassigned = Student::whereNull('classroom_id')
+            ->when(
+                $request->search,
+                fn ($q, $s) => $q->where('name', 'like', "%{$s}%")->orWhere('nis', 'like', "%{$s}%")
+            )
+            ->orderBy('name')
+            ->limit(50)
+            ->get(['id', 'nis', 'name', 'gender']);
+
+        return Inertia::render('Classrooms/Show', [
+            'classroom'  => $classroom->load('homeroomTeacher:id,name'),
+            'assigned'   => $assigned,
+            'unassigned' => $unassigned,
+            'filters'    => $request->only('search'),
         ]);
     }
 
@@ -53,5 +79,28 @@ class ClassroomController extends Controller
         $this->authorize('restore', $classroom);
         $classroom->restore();
         return back()->with('success', 'Kelas dipulihkan.');
+    }
+
+    public function assignStudent(Request $request, Classroom $classroom): RedirectResponse
+    {
+        $this->authorize('viewAny', Classroom::class);
+        $request->validate(['student_id' => 'required|exists:students,id']);
+
+        Student::whereKey($request->student_id)
+            ->whereNull('classroom_id')
+            ->update(['classroom_id' => $classroom->id]);
+
+        return back()->with('success', 'Santri berhasil ditambahkan ke kelas.');
+    }
+
+    public function removeStudent(Classroom $classroom, Student $student): RedirectResponse
+    {
+        $this->authorize('viewAny', Classroom::class);
+
+        if ((int) $student->classroom_id === $classroom->id) {
+            $student->update(['classroom_id' => null]);
+        }
+
+        return back()->with('success', 'Santri berhasil dilepas dari kelas.');
     }
 }

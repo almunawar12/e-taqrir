@@ -6,9 +6,9 @@ import StatCard from '@/Components/StatCard';
 import { FormField, SelectField, TextField } from '@/Components/FormField';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useActiveRole } from '@/hooks/useActiveRole';
-import { Head, router, useForm, usePage } from '@inertiajs/react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
-import { toast } from '@/Components/Toast';
+import { useDebounce, useDebounceEffect } from '@/hooks/useDebounce';
 import { z } from 'zod';
 import type { PageProps } from '@/types';
 
@@ -222,7 +222,13 @@ function ClassroomCard({
             </div>
 
             <div className="flex items-center justify-between border-t border-outline-variant bg-surface-container-low px-6 py-4 transition-colors group-hover:bg-primary-fixed">
-                <span className="text-label-caps text-on-surface-variant">ID #{classroom.id}</span>
+                <Link
+                    href={`/classrooms/${classroom.id}`}
+                    className="flex items-center gap-1.5 text-label-caps text-on-surface-variant transition-colors hover:text-primary"
+                >
+                    <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                    Detail
+                </Link>
                 <div className="flex items-center gap-1">
                     {canEdit && (
                         <button
@@ -275,6 +281,7 @@ export default function ClassroomsIndex() {
     const { classrooms, teachers, filters } = usePage<Props>().props;
     const { active } = useActiveRole();
     const [search, setSearch] = useState(filters.search ?? '');
+    const debouncedSearch     = useDebounce(search);
     const { confirm, dialog } = useConfirm();
 
     const [modalOpen, setModalOpen]   = useState(false);
@@ -288,6 +295,8 @@ export default function ClassroomsIndex() {
         router.get('/classrooms', { search, ...params }, { preserveState: true, replace: true });
     };
 
+    useDebounceEffect(debouncedSearch, () => applyFilter({ search: debouncedSearch }));
+
     const openCreate = () => { setEditItem(undefined); setModalOpen(true); };
     const openEdit   = (c: Classroom) => { setEditItem(c); setModalOpen(true); };
     const closeModal = () => setModalOpen(false);
@@ -299,10 +308,7 @@ export default function ClassroomsIndex() {
             tone: 'danger',
             confirmLabel: 'Hapus',
             onConfirm: (done) =>
-                router.delete(`/classrooms/${c.id}`, {
-                    onSuccess: () => toast.success('Kelas berhasil dihapus.'),
-                    onFinish: done,
-                }),
+                router.delete(`/classrooms/${c.id}`, { onFinish: done }),
         });
     };
 
@@ -364,7 +370,6 @@ export default function ClassroomsIndex() {
                         placeholder="Cari nama kelas..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && applyFilter({ search })}
                         className="w-full rounded-lg border border-outline-variant bg-surface-container-low py-2.5 pl-10 pr-4 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20 md:w-72"
                     />
                 </div>

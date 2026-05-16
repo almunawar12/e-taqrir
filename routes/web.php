@@ -7,6 +7,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RoleSwitchController;
 use App\Http\Controllers\StudentController;
 use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\UserController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -33,13 +34,20 @@ Route::middleware('auth')->group(function () {
         ->middleware('throttle:20,1')
         ->name('role.switch');
 
+    // Users (super_admin only)
+    Route::resource('users', UserController::class)->except(['show', 'create', 'edit']);
+
     // Master Data
-    Route::resource('classrooms', ClassroomController::class)->except(['show', 'create', 'edit']);
+    Route::resource('classrooms', ClassroomController::class)->except(['create', 'edit']);
     Route::post('classrooms/{id}/restore', [ClassroomController::class, 'restore'])->name('classrooms.restore');
+    Route::post('classrooms/{classroom}/assign', [ClassroomController::class, 'assignStudent'])->name('classrooms.assign');
+    Route::delete('classrooms/{classroom}/students/{student}', [ClassroomController::class, 'removeStudent'])->name('classrooms.students.remove');
 
     Route::resource('subjects', SubjectController::class)->except(['show', 'create', 'edit']);
     Route::post('subjects/{id}/restore', [SubjectController::class, 'restore'])->name('subjects.restore');
 
+    Route::get('students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
+    Route::post('students/import', [StudentController::class, 'import'])->name('students.import');
     Route::resource('students', StudentController::class)->except(['show', 'create', 'edit']);
     Route::post('students/{id}/restore', [StudentController::class, 'restore'])->name('students.restore');
 

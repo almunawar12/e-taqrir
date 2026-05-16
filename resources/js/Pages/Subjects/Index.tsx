@@ -8,7 +8,7 @@ import { useConfirm } from '@/hooks/useConfirm';
 import { useActiveRole } from '@/hooks/useActiveRole';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
-import { toast } from '@/Components/Toast';
+import { useDebounce, useDebounceEffect } from '@/hooks/useDebounce';
 import { z } from 'zod';
 import type { PageProps } from '@/types';
 
@@ -156,6 +156,7 @@ export default function SubjectsIndex() {
     const { subjects, filters } = usePage<Props>().props;
     const { active } = useActiveRole();
     const [search, setSearch] = useState(filters.search ?? '');
+    const debouncedSearch     = useDebounce(search);
     const { confirm, dialog } = useConfirm();
 
     const [modalOpen, setModalOpen] = useState(false);
@@ -166,6 +167,8 @@ export default function SubjectsIndex() {
     const applyFilter = (params: object) => {
         router.get('/subjects', { search, ...params }, { preserveState: true, replace: true });
     };
+
+    useDebounceEffect(debouncedSearch, () => applyFilter({ search: debouncedSearch }));
 
     const openCreate = () => { setEditItem(undefined); setModalOpen(true); };
     const openEdit   = (s: Subject) => { setEditItem(s); setModalOpen(true); };
@@ -178,10 +181,7 @@ export default function SubjectsIndex() {
             tone: 'danger',
             confirmLabel: 'Hapus',
             onConfirm: (done) =>
-                router.delete(`/subjects/${s.id}`, {
-                    onSuccess: () => toast.success('Mata pelajaran berhasil dihapus.'),
-                    onFinish: done,
-                }),
+                router.delete(`/subjects/${s.id}`, { onFinish: done }),
         });
     };
 
@@ -246,7 +246,6 @@ export default function SubjectsIndex() {
                             placeholder="Cari kode / nama mapel..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && applyFilter({ search })}
                             className="w-full rounded-lg border border-outline-variant bg-surface-container-low py-2.5 pl-10 pr-4 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20 md:w-72"
                         />
                     </div>
