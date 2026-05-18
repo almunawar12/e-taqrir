@@ -22,6 +22,8 @@ const NAV_ITEMS: NavItem[] = [
       roles: ['super_admin'] },
     { label: 'Pengguna',      href: '/users',       icon: 'manage_accounts', routeName: 'users.*',
       roles: ['super_admin'] },
+    { label: 'Raport',       href: '/raport',      icon: 'description',     routeName: 'raport.*',
+      roles: ['super_admin', 'wali_kelas'] },
     { label: 'Bobot Nilai',  href: '/bobot',       icon: 'tune',            routeName: 'bobot.*',
       roles: ['super_admin'] },
 ];

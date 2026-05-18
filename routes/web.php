@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AssessmentController;
+use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssessmentFinalController;
 use App\Http\Controllers\BobotController;
 use App\Http\Controllers\ContextController;
@@ -61,6 +62,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('bobot',  [BobotController::class, 'index'])->name('bobot.index');
     Route::put('bobot',  [BobotController::class, 'update'])->name('bobot.update');
+
+    // Raport
+    Route::get('raport',                                    [ReportController::class, 'index'])->name('raport.index');
+    Route::get('raport/{classroom}',                        [ReportController::class, 'show'])->name('raport.show');
+    Route::get('raport/{classroom}/{student}',              [ReportController::class, 'preview'])->name('raport.preview');
 
     Route::resource('assessments', AssessmentController::class);
     Route::post('assessments/{assessment}/transition', [AssessmentController::class, 'transition'])
