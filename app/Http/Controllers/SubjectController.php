@@ -16,20 +16,24 @@ class SubjectController extends Controller
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Subject::class);
+        $user      = $request->user();
+        $canManage = $user->active_role === 'super_admin';
+
         $subjects = Subject::query()
             ->with(['teachers:id,name', 'classrooms:id,name,grade_level'])
+            ->when($user->active_role === 'guru_mapel',
+                fn($q) => $q->whereHas('teachers', fn($t) => $t->where('users.id', $user->id))
+            )
             ->when($request->search, fn($q, $s) => $q->where('name', 'like', "%{$s}%")->orWhere('code', 'like', "%{$s}%"))
             ->orderBy('code')
             ->paginate(20)->withQueryString();
 
-        $teachers   = User::role('guru_mapel')->orderBy('name')->get(['id', 'name']);
-        $classrooms = Classroom::orderBy('grade_level')->orderBy('name')->get(['id', 'name', 'grade_level']);
-
         return Inertia::render('Subjects/Index', [
             'subjects'   => $subjects,
-            'teachers'   => $teachers,
-            'classrooms' => $classrooms,
             'filters'    => $request->only('search'),
+            'canManage'  => $canManage,
+            'teachers'   => $canManage ? User::role('guru_mapel')->orderBy('name')->get(['id', 'name']) : [],
+            'classrooms' => $canManage ? Classroom::orderBy('grade_level')->orderBy('name')->get(['id', 'name', 'grade_level']) : [],
         ]);
     }
 

@@ -288,7 +288,7 @@ export default function ClassroomsIndex() {
     const [editItem, setEditItem]     = useState<Classroom | undefined>(undefined);
 
     const canCreate = active === 'super_admin';
-    const canEdit   = active === 'super_admin' || active === 'wali_kelas';
+    const canEdit   = active === 'super_admin';
     const canDelete = active === 'super_admin';
 
     const applyFilter = (params: object) => {

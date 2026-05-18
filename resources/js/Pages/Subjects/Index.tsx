@@ -47,6 +47,7 @@ interface Props extends PageProps {
     teachers:   Teacher[];
     classrooms: Classroom[];
     filters:    { search?: string };
+    canManage:  boolean;
 }
 
 // ─── Subject form ────────────────────────────────────────────────────────────
@@ -249,7 +250,7 @@ function AssignClassroomsForm({
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 export default function SubjectsIndex() {
-    const { subjects, teachers, classrooms, filters } = usePage<Props>().props;
+    const { subjects, teachers, classrooms, filters, canManage } = usePage<Props>().props;
     const { active } = useActiveRole();
     const [search, setSearch]           = useState(filters.search ?? '');
     const debouncedSearch               = useDebounce(search);
@@ -262,7 +263,7 @@ export default function SubjectsIndex() {
     const [classroomItem, setClassroomItem]       = useState<Subject | undefined>(undefined);
     const [classroomModalOpen, setClassroomModal] = useState(false);
 
-    const isAdmin = active === 'super_admin';
+    const isAdmin = canManage;
 
     const applyFilter = (params: object) => {
         router.get('/subjects', { search, ...params }, { preserveState: true, replace: true });

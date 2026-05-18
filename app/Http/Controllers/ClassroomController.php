@@ -15,9 +15,12 @@ class ClassroomController extends Controller
     public function index(Request $request): Response
     {
         $this->authorize('viewAny', Classroom::class);
+        $user = $request->user();
+
         $classrooms = Classroom::query()
             ->withCount('students')
             ->with('homeroomTeacher:id,name')
+            ->when($user->active_role === 'wali_kelas', fn($q) => $q->where('homeroom_teacher_id', $user->id))
             ->when($request->search, fn($q, $s) => $q->where('name', 'like', "%{$s}%"))
             ->orderBy('grade_level')->orderBy('name')
             ->paginate(20)->withQueryString();

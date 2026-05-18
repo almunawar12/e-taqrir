@@ -24,12 +24,12 @@ class ClassroomPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['super_admin', 'wali_kelas']);
+        return $user->active_role === 'super_admin';
     }
 
     public function update(User $user, Classroom $classroom): bool
     {
-        return $user->hasRole(['super_admin', 'wali_kelas']);
+        return $user->active_role === 'super_admin';
     }
 
     public function delete(User $user, Classroom $classroom): bool

@@ -37,7 +37,7 @@ export default function ClassroomShow() {
     const [search, setSearch] = useState(filters.search ?? '');
     const debouncedSearch     = useDebounce(search);
 
-    const canManage = active === 'super_admin' || active === 'wali_kelas';
+    const canManage = active === 'super_admin';
 
     useDebounceEffect(debouncedSearch, () =>
         router.get(`/classrooms/${classroom.id}`, { search: debouncedSearch }, { preserveState: true, replace: true })
