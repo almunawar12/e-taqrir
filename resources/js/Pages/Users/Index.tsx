@@ -29,7 +29,7 @@ const schemaCreate = z.object({
     name:     z.string().min(1, 'Nama wajib diisi').max(150),
     email:    z.string().email('Email tidak valid').max(255),
     password: z.string().min(8, 'Password minimal 8 karakter'),
-    role:     z.string().min(1, 'Role wajib dipilih'),
+    roles:    z.array(z.string()).min(1, 'Pilih minimal 1 role'),
 });
 const schemaEdit = schemaCreate.extend({
     password: z.union([z.string().min(8, 'Password minimal 8 karakter'), z.literal('')]),
@@ -77,13 +77,13 @@ function UserForm({
 }) {
     const isEdit     = !!user;
     const isSelf     = user?.id === currentUserId;
-    const userRole   = user?.roles[0]?.name ?? '';
+    const userRoles  = user?.roles.map((r) => r.name) ?? [];
 
     const { data, setData, post, put, processing, errors } = useForm({
         name:     user?.name ?? '',
         email:    user?.email ?? '',
         password: '',
-        role:     userRole,
+        roles:    userRoles as string[],
     });
 
     const [zodErrors, setZodErrors] = useState<Record<string, string>>({});
@@ -124,13 +124,26 @@ function UserForm({
                 <TextField id="password" type="password" value={data.password} onChange={(e) => setData('password', e.target.value)} placeholder={isEdit ? '••••••••' : 'Min. 8 karakter'} autoComplete="new-password" />
             </FormField>
 
-            <FormField label="Role" htmlFor="role" error={err('role')}>
-                <SelectField id="role" value={data.role} onChange={(e) => setData('role', e.target.value)} disabled={isSelf}>
-                    <option value="">— Pilih role —</option>
+            <FormField label="Role" htmlFor="roles" error={err('roles')}>
+                <div className={`space-y-2 rounded-xl border border-outline-variant bg-surface-container-low p-3 ${isSelf ? 'pointer-events-none opacity-50' : ''}`}>
                     {roles.map((r) => (
-                        <option key={r} value={r}>{ROLE_LABEL[r] ?? r}</option>
+                        <label key={r} className="flex cursor-pointer items-center gap-2.5">
+                            <input
+                                type="checkbox"
+                                value={r}
+                                checked={data.roles.includes(r)}
+                                onChange={(e) => {
+                                    const next = e.target.checked
+                                        ? [...data.roles, r]
+                                        : data.roles.filter((x) => x !== r);
+                                    setData('roles', next);
+                                }}
+                                className="h-4 w-4 rounded accent-primary"
+                            />
+                            <span className="text-sm text-on-surface">{ROLE_LABEL[r] ?? r}</span>
+                        </label>
                     ))}
-                </SelectField>
+                </div>
                 {isSelf && <p className="mt-1 text-xs text-on-surface-variant">Tidak bisa mengubah role sendiri.</p>}
             </FormField>
 
@@ -274,7 +287,6 @@ export default function UsersIndex() {
                                     </td>
                                 </tr>
                             ) : users.data.map((u) => {
-                                const role      = u.roles[0]?.name ?? '';
                                 const isSelf    = u.id === auth.user.id;
                                 return (
                                     <tr key={u.id} className="transition-colors hover:bg-surface-container-lowest">
@@ -291,10 +303,14 @@ export default function UsersIndex() {
                                         </td>
                                         <td className="px-6 py-4 text-body-sm text-on-surface-variant">{u.email}</td>
                                         <td className="px-6 py-4">
-                                            {role ? (
-                                                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ROLE_COLOR[role] ?? 'bg-surface-container-high text-on-surface-variant'}`}>
-                                                    {ROLE_LABEL[role] ?? role}
-                                                </span>
+                                            {u.roles.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {u.roles.map((ro) => (
+                                                        <span key={ro.name} className={`rounded-full px-3 py-1 text-xs font-semibold ${ROLE_COLOR[ro.name] ?? 'bg-surface-container-high text-on-surface-variant'}`}>
+                                                            {ROLE_LABEL[ro.name] ?? ro.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
                                             ) : (
                                                 <span className="text-body-sm text-on-surface-variant/60">—</span>
                                             )}

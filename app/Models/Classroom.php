@@ -30,4 +30,10 @@ class Classroom extends Model
     {
         return $this->hasMany(Student::class);
     }
+
+    /** @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Subject> */
+    public function subjects(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'classroom_subject');
+    }
 }

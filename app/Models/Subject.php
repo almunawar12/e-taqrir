@@ -22,4 +22,16 @@ class Subject extends Model
     protected $casts = [
         'credit_hours' => 'integer',
     ];
+
+    /** @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<User> */
+    public function teachers(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'subject_user');
+    }
+
+    /** @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Classroom> */
+    public function classrooms(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Classroom::class, 'classroom_subject');
+    }
 }

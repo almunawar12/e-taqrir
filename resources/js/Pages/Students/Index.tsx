@@ -204,12 +204,12 @@ function ImportModal({ onClose }: { onClose: () => void }) {
                     {file ? (
                         <p className="mt-2 text-body-sm font-semibold text-primary">{file.name}</p>
                     ) : (
-                        <p className="mt-2 text-body-sm text-on-surface-variant">Klik untuk pilih file <span className="font-semibold">.csv</span></p>
+                        <p className="mt-2 text-body-sm text-on-surface-variant">Klik untuk pilih file <span className="font-semibold">.xlsx</span></p>
                     )}
                     <input
                         ref={fileRef}
                         type="file"
-                        accept=".csv,text/csv"
+                        accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                         className="hidden"
                         onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                     />

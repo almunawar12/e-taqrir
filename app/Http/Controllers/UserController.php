@@ -39,13 +39,14 @@ class UserController extends Controller
 
     public function store(StoreUserRequest $request): RedirectResponse
     {
+        $roles = $request->roles;
         $user = User::create([
             'name'        => $request->name,
             'email'       => $request->email,
             'password'    => $request->password,
-            'active_role' => $request->role,
+            'active_role' => $roles[0],
         ]);
-        $user->syncRoles([$request->role]);
+        $user->syncRoles($roles);
 
         return back()->with('success', 'Pengguna berhasil ditambahkan.');
     }
@@ -54,17 +55,18 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
 
+        $roles = $request->roles;
         $data = [
             'name'        => $request->name,
             'email'       => $request->email,
-            'active_role' => $request->role,
+            'active_role' => in_array($user->active_role, $roles) ? $user->active_role : $roles[0],
         ];
         if (filled($request->password)) {
             $data['password'] = $request->password;
         }
 
         $user->update($data);
-        $user->syncRoles([$request->role]);
+        $user->syncRoles($roles);
 
         return back()->with('success', 'Data pengguna berhasil diperbarui.');
     }

@@ -13,7 +13,7 @@ const schema = z.object({
 });
 
 interface Classroom { id: number; name: string; academic_year: string }
-interface Subject   { id: number; code: string; name: string }
+interface Subject   { id: number; code: string; name: string; classrooms: Classroom[] }
 interface Props extends PageProps {
     classrooms: Classroom[];
     subjects:   Subject[];
@@ -29,6 +29,11 @@ export default function AssessmentCreate() {
         academic_year: '',
         semester:      '',
     });
+
+    // classrooms filtered by selected subject's assigned classrooms
+    const availableClassrooms = data.subject_id
+        ? (subjects.find((s) => String(s.id) === data.subject_id)?.classrooms ?? [])
+        : classrooms;
 
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -47,9 +52,13 @@ export default function AssessmentCreate() {
 
     const err = (field: string) => zodErrors[field] ?? errors[field as keyof typeof errors];
 
+    const onSubjectChange = (id: string) => {
+        setData((prev) => ({ ...prev, subject_id: id, classroom_id: '' }));
+    };
+
     const onClassroomChange = (id: string) => {
         setData('classroom_id', id);
-        const cls = classrooms.find((c) => String(c.id) === id);
+        const cls = availableClassrooms.find((c) => String(c.id) === id);
         if (cls?.academic_year) setData('academic_year', cls.academic_year);
     };
 
@@ -77,28 +86,30 @@ export default function AssessmentCreate() {
                     onSubmit={submit}
                     className="space-y-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-8 shadow-sm"
                 >
-                    <FormField label="Kelas" htmlFor="classroom_id" error={err('classroom_id')}>
-                        <SelectField
-                            id="classroom_id"
-                            value={data.classroom_id}
-                            onChange={(e) => onClassroomChange(e.target.value)}
-                        >
-                            <option value="">— Pilih Kelas —</option>
-                            {classrooms.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </SelectField>
-                    </FormField>
-
                     <FormField label="Mata Pelajaran" htmlFor="subject_id" error={err('subject_id')}>
                         <SelectField
                             id="subject_id"
                             value={data.subject_id}
-                            onChange={(e) => setData('subject_id', e.target.value)}
+                            onChange={(e) => onSubjectChange(e.target.value)}
                         >
                             <option value="">— Pilih Mapel —</option>
                             {subjects.map((s) => (
                                 <option key={s.id} value={s.id}>[{s.code}] {s.name}</option>
+                            ))}
+                        </SelectField>
+                    </FormField>
+
+                    <FormField label="Kelas" htmlFor="classroom_id" error={err('classroom_id')}
+                        hint={data.subject_id && availableClassrooms.length === 0 ? 'Mapel ini belum diassign ke kelas manapun.' : undefined}>
+                        <SelectField
+                            id="classroom_id"
+                            value={data.classroom_id}
+                            onChange={(e) => onClassroomChange(e.target.value)}
+                            disabled={!data.subject_id}
+                        >
+                            <option value="">— Pilih Kelas —</option>
+                            {availableClassrooms.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
                             ))}
                         </SelectField>
                     </FormField>

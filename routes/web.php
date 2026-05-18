@@ -39,6 +39,8 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('subjects', SubjectController::class)->except(['show', 'create', 'edit']);
     Route::post('subjects/{id}/restore', [SubjectController::class, 'restore'])->name('subjects.restore');
+    Route::put('subjects/{subject}/teachers', [SubjectController::class, 'syncTeachers'])->name('subjects.teachers.sync');
+    Route::put('subjects/{subject}/classrooms', [SubjectController::class, 'syncClassrooms'])->name('subjects.classrooms.sync');
 
     Route::get('students/template', [StudentController::class, 'downloadTemplate'])->name('students.template');
     Route::post('students/import', [StudentController::class, 'import'])->name('students.import');

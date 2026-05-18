@@ -48,4 +48,10 @@ class User extends Authenticatable
     {
         return $this->active_role ?? $this->getRoleNames()->first();
     }
+
+    /** @return \Illuminate\Database\Eloquent\Relations\BelongsToMany<Subject> */
+    public function subjects(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'subject_user');
+    }
 }

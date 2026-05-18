@@ -9,6 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class StudentController extends Controller
@@ -59,41 +62,62 @@ class StudentController extends Controller
 
     public function downloadTemplate(): StreamedResponse
     {
-        return response()->streamDownload(function () {
-            $out = fopen('php://output', 'w');
-            fputcsv($out, ['nis', 'name', 'gender', 'birth_date', 'birth_place', 'address', 'wali_phone']);
-            fputcsv($out, ['2024001', 'Ahmad Fauzi', 'L', '2010-05-15', 'Jakarta', 'Jl. Contoh No. 1', '08123456789']);
-            fputcsv($out, ['2024002', 'Siti Aminah', 'P', '2010-03-20', 'Bandung', '', '08987654321']);
-            fclose($out);
-        }, 'template-import-santri.csv', ['Content-Type' => 'text/csv']);
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        $headers = ['nis', 'name', 'gender', 'birth_date', 'birth_place', 'address', 'wali_phone'];
+        $sheet->fromArray($headers, null, 'A1');
+
+        // Style header row: bold + green background
+        $headerStyle = $sheet->getStyle('A1:G1');
+        $headerStyle->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $headerStyle->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('004532');
+
+        // Example rows
+        $sheet->fromArray(['2024001', 'Ahmad Fauzi', 'L', '2010-05-15', 'Jakarta', 'Jl. Contoh No. 1', '08123456789'], null, 'A2');
+        $sheet->fromArray(['2024002', 'Siti Aminah', 'P', '2010-03-20', 'Bandung', '', '08987654321'], null, 'A3');
+
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, 'template-import-santri.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     public function import(Request $request): RedirectResponse
     {
         $this->authorize('viewAny', Student::class);
         $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt', 'max:4096'],
+            'file' => ['required', 'file', 'mimes:xlsx,xls', 'max:4096'],
         ]);
 
-        $handle   = fopen($request->file('file')->getPathname(), 'r');
-        $header   = fgetcsv($handle); // skip header row
+        $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($request->file('file')->getPathname());
+        $rows        = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+        array_shift($rows); // skip header row
+
         $imported = 0;
         $errors   = [];
         $rowNum   = 1;
 
         DB::beginTransaction();
         try {
-            while (($row = fgetcsv($handle)) !== false) {
+            foreach ($rows as $row) {
                 $rowNum++;
-                $row = array_map('trim', $row);
+                $row = array_map(fn($v) => trim((string) ($v ?? '')), $row);
 
-                $nis        = $row[0] ?? '';
-                $name       = $row[1] ?? '';
-                $gender     = strtoupper($row[2] ?? '');
-                $birthDate  = $row[3] ?? null;
-                $birthPlace = $row[4] ?? null;
-                $address    = $row[5] ?? null;
-                $waliPhone  = $row[6] ?? null;
+                $nis        = $row[0];
+                $name       = $row[1];
+                $gender     = strtoupper($row[2]);
+                $birthDate  = $row[3] ?: null;
+                $birthPlace = $row[4] ?: null;
+                $address    = $row[5] ?: null;
+                $waliPhone  = $row[6] ?: null;
 
                 if ($nis === '' || $name === '') {
                     $errors[] = "Baris {$rowNum}: NIS dan Nama wajib diisi.";
@@ -112,21 +136,18 @@ class StudentController extends Controller
                     'nis'         => $nis,
                     'name'        => $name,
                     'gender'      => $gender,
-                    'birth_date'  => $birthDate ?: null,
-                    'birth_place' => $birthPlace ?: null,
-                    'address'     => $address ?: null,
-                    'wali_phone'  => $waliPhone ?: null,
+                    'birth_date'  => $birthDate,
+                    'birth_place' => $birthPlace,
+                    'address'     => $address,
+                    'wali_phone'  => $waliPhone,
                 ]);
                 $imported++;
             }
             DB::commit();
         } catch (\Throwable $e) {
             DB::rollBack();
-            fclose($handle);
             return back()->with('error', 'Import gagal: ' . $e->getMessage());
         }
-
-        fclose($handle);
 
         $flash = [];
         if ($imported > 0) {

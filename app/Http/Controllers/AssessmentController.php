@@ -58,9 +58,20 @@ class AssessmentController extends Controller
     {
         $this->authorize('create', Assessment::class);
 
+        $user = request()->user();
+
+        $subjectsQuery = Subject::select('id', 'code', 'name')
+            ->with('classrooms:id,name,academic_year')
+            ->orderBy('code');
+
+        // guru_mapel only sees subjects assigned to them
+        if ($user->active_role === 'guru_mapel') {
+            $subjectsQuery->whereHas('teachers', fn ($q) => $q->where('users.id', $user->id));
+        }
+
         return Inertia::render('Assessments/Create', [
             'classrooms' => Classroom::select('id', 'name', 'academic_year')->orderBy('name')->get(),
-            'subjects'   => Subject::select('id', 'code', 'name')->orderBy('code')->get(),
+            'subjects'   => $subjectsQuery->get(),
         ]);
     }
 
