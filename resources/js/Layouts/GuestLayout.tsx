@@ -1,3 +1,4 @@
+import Toast from '@/Components/Toast';
 import { PropsWithChildren } from 'react';
 
 const LOGO_SRC =
@@ -5,6 +6,7 @@ const LOGO_SRC =
 
 export default function GuestLayout({ children }: PropsWithChildren) {
     return (
+        <>
         <div className="relative min-h-screen bg-background font-sans text-on-surface">
             {/* Subtle geometric bg */}
             <div
@@ -57,5 +59,7 @@ export default function GuestLayout({ children }: PropsWithChildren) {
                 </main>
             </div>
         </div>
+        <Toast />
+        </>
     );
 }
