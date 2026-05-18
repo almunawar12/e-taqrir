@@ -11,7 +11,9 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
     { label: 'Dashboard',      href: '/dashboard',   icon: 'dashboard',  routeName: 'dashboard' },
-    { label: 'Penilaian',      href: '/assessments', icon: 'assessment', routeName: 'assessments.*' },
+    { label: 'Penilaian',      href: '/assessments',  icon: 'assessment',   routeName: 'assessments.*' },
+    { label: 'Nilai Akhir',   href: '/nilai-akhir',  icon: 'grade',        routeName: 'nilai-akhir.*',
+      roles: ['guru_mapel'] },
     { label: 'Kelas',          href: '/classrooms',  icon: 'school',     routeName: 'classrooms.*',
       roles: ['super_admin', 'wali_kelas'] },
     { label: 'Santri',         href: '/students',    icon: 'group',      routeName: 'students.*',
@@ -19,6 +21,8 @@ const NAV_ITEMS: NavItem[] = [
     { label: 'Mata Pelajaran', href: '/subjects',    icon: 'book',           routeName: 'subjects.*',
       roles: ['super_admin'] },
     { label: 'Pengguna',      href: '/users',       icon: 'manage_accounts', routeName: 'users.*',
+      roles: ['super_admin'] },
+    { label: 'Bobot Nilai',  href: '/bobot',       icon: 'tune',            routeName: 'bobot.*',
       roles: ['super_admin'] },
 ];
 

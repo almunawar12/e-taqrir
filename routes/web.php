@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AssessmentController;
+use App\Http\Controllers\AssessmentFinalController;
+use App\Http\Controllers\BobotController;
 use App\Http\Controllers\ContextController;
 use App\Http\Controllers\ScoreImportController;
 use App\Http\Controllers\ClassroomController;
@@ -53,6 +55,13 @@ Route::middleware('auth')->group(function () {
     Route::post('students/{id}/restore', [StudentController::class, 'restore'])->name('students.restore');
 
     // Assessment Workflow
+    Route::get('nilai-akhir',                           [AssessmentFinalController::class, 'index'])->name('nilai-akhir.index');
+    Route::post('nilai-akhir/submit',                   [AssessmentFinalController::class, 'submit'])->name('nilai-akhir.submit');
+    Route::get('nilai-akhir/{classroomId}/{subjectId}', [AssessmentFinalController::class, 'show'])->name('nilai-akhir.show');
+
+    Route::get('bobot',  [BobotController::class, 'index'])->name('bobot.index');
+    Route::put('bobot',  [BobotController::class, 'update'])->name('bobot.update');
+
     Route::resource('assessments', AssessmentController::class);
     Route::post('assessments/{assessment}/transition', [AssessmentController::class, 'transition'])
         ->name('assessments.transition');

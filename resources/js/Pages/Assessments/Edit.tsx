@@ -48,7 +48,6 @@ interface Assessment {
 
 interface Props extends PageProps {
     assessment: Assessment;
-    canSubmit: boolean;
 }
 
 const STATE_LABELS: Record<string, string> = {
@@ -68,7 +67,7 @@ const STATE_BADGE: Record<string, string> = {
 };
 
 export default function AssessmentEdit() {
-    const { assessment, canSubmit } = usePage<Props>().props;
+    const { assessment } = usePage<Props>().props;
 
     const [scores, setScores] = useState<Record<number, string>>(
         Object.fromEntries(assessment.items.map((i) => [i.student_id, i.score ?? ''])),
@@ -77,10 +76,8 @@ export default function AssessmentEdit() {
         Object.fromEntries(assessment.items.map((i) => [i.student_id, i.notes ?? ''])),
     );
     const [saving, setSaving] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
     const importRef      = useRef<HTMLInputElement>(null);
     const [importError, setImportError] = useState<string | null>(null);
-    const [submitComment, setSubmitComment] = useState('');
     const [evidenceName, setEvidenceName] = useState<string | null>(assessment.evidence_name);
     const [pondFiles, setPondFiles] = useState<unknown[]>([]);
     const { confirm, dialog } = useConfirm();
@@ -106,23 +103,6 @@ export default function AssessmentEdit() {
             icon: 'save',
             confirmLabel: 'Simpan',
             onConfirm: (done) => { persistScores(); done(); },
-        });
-    };
-
-    const handleSubmit = () => {
-        confirm({
-            title: 'Ajukan penilaian?',
-            message: 'Penilaian akan dikirim ke wali kelas untuk diverifikasi.',
-            tone: 'primary',
-            icon: 'send',
-            confirmLabel: 'Ajukan',
-            onConfirm: (done) => {
-                setSubmitting(true);
-                router.post(`/assessments/${assessment.id}/transition`, {
-                    action: 'submit',
-                    comment: submitComment || null,
-                }, { onFinish: () => { setSubmitting(false); done(); } });
-            },
         });
     };
 
@@ -388,35 +368,7 @@ export default function AssessmentEdit() {
                     )}
                 </div>
 
-                {/* Submit for review */}
-                {canSubmit && (
-                    <div className="rounded-xl border border-primary/20 bg-primary/5 p-6 shadow-sm">
-                        <h3 className="flex items-center gap-2 text-headline-md text-on-surface">
-                            <span className="material-symbols-outlined text-primary">send</span>
-                            Ajukan ke Wali Kelas
-                        </h3>
-                        <p className="mt-1 text-body-sm text-on-surface-variant">
-                            Setelah diajukan, penilaian akan diverifikasi oleh wali kelas.
-                        </p>
-                        <textarea
-                            rows={3}
-                            value={submitComment}
-                            onChange={(e) => setSubmitComment(e.target.value)}
-                            placeholder="Catatan pengajuan (opsional)"
-                            className="mt-4 block w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        />
-                        <button
-                            type="button"
-                            onClick={handleSubmit}
-                            disabled={submitting}
-                            className="mt-4 flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-button font-semibold text-on-primary shadow-sm transition-all hover:brightness-110 disabled:opacity-60"
-                        >
-                            {submitting && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}
-                            <span className="material-symbols-outlined text-[18px]">send</span>
-                            {submitting ? 'Mengajukan...' : 'Ajukan Penilaian'}
-                        </button>
-                    </div>
-                )}
+                {/* Submission is done via menu Nilai Akhir, not here */}
             </div>
         </AuthenticatedLayout>
     );

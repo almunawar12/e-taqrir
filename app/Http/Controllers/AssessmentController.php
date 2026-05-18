@@ -143,7 +143,6 @@ class AssessmentController extends Controller
 
         return Inertia::render('Assessments/Edit', [
             'assessment' => $assessment,
-            'canSubmit'  => request()->user()->can('submit', $assessment),
         ]);
     }
 
