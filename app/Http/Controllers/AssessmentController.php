@@ -48,9 +48,28 @@ class AssessmentController extends Controller
             ->orderByDesc('updated_at')
             ->paginate(20)->withQueryString();
 
+        $canCreate = $user->can('create', Assessment::class);
+
+        $createData = [];
+        if ($canCreate) {
+            $subjectsQuery = Subject::select('id', 'code', 'name')
+                ->with('classrooms:id,name,academic_year')
+                ->orderBy('code');
+
+            if ($user->active_role === 'guru_mapel') {
+                $subjectsQuery->whereHas('teachers', fn ($q) => $q->where('users.id', $user->id));
+            }
+
+            $createData = [
+                'subjects'   => $subjectsQuery->get(),
+                'classrooms' => Classroom::select('id', 'name', 'academic_year')->orderBy('name')->get(),
+            ];
+        }
+
         return Inertia::render('Assessments/Index', [
             'assessments' => $assessments,
-            'filters' => $request->only('state', 'academic_year', 'semester'),
+            'filters'     => $request->only('state', 'academic_year', 'semester'),
+            ...$createData,
         ]);
     }
 
@@ -86,10 +105,11 @@ class AssessmentController extends Controller
             'subject_id'    => $data['subject_id'],
             'academic_year' => $data['academic_year'],
             'semester'      => $data['semester'],
+            'type'          => $data['type'],
         ])->exists();
 
         if ($exists) {
-            return back()->withErrors(['classroom_id' => 'Assessment untuk kelas, mapel, dan semester ini sudah ada.']);
+            return back()->withErrors(['type' => 'Penilaian jenis ini untuk kelas, mapel, dan semester sudah ada.']);
         }
 
         $assessment = Assessment::create($data);

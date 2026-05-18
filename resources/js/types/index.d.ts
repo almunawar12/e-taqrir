@@ -8,6 +8,11 @@ export interface User {
     active_role?: RoleName | null;
 }
 
+export interface ActiveContext {
+    academic_year: string | null;
+    semester: number | null;
+}
+
 export type PageProps<T extends Record<string, unknown> = Record<string, unknown>> = T & {
     auth: {
         user: User;
@@ -18,4 +23,5 @@ export type PageProps<T extends Record<string, unknown> = Record<string, unknown
         success?: string | null;
         error?: string | null;
     };
+    context: ActiveContext;
 };

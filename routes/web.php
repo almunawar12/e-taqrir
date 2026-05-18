@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\AssessmentController;
+use App\Http\Controllers\ContextController;
+use App\Http\Controllers\ScoreImportController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\EvidenceController;
 use App\Http\Controllers\ProfileController;
@@ -23,6 +25,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    Route::post('/context', [ContextController::class, 'store'])->name('context.store');
+    Route::delete('/context', [ContextController::class, 'destroy'])->name('context.destroy');
 
     Route::post('/role/switch', RoleSwitchController::class)
         ->middleware('throttle:20,1')
@@ -51,6 +56,10 @@ Route::middleware('auth')->group(function () {
     Route::resource('assessments', AssessmentController::class);
     Route::post('assessments/{assessment}/transition', [AssessmentController::class, 'transition'])
         ->name('assessments.transition');
+
+    // Score import/export
+    Route::get('assessments/{assessment}/scores/template', [ScoreImportController::class, 'downloadTemplate'])->name('assessments.scores.template');
+    Route::post('assessments/{assessment}/scores/import', [ScoreImportController::class, 'import'])->name('assessments.scores.import');
 
     // Evidence
     Route::post('assessments/{assessment}/evidence', [EvidenceController::class, 'store'])->name('assessments.evidence.store');

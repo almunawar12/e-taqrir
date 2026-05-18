@@ -2,9 +2,12 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PageHero from '@/Components/PageHero';
 import Pagination from '@/Components/Pagination';
 import StatCard from '@/Components/StatCard';
+import { FormField, SelectField, TextField } from '@/Components/FormField';
+import { useConfirm } from '@/hooks/useConfirm';
 import { useActiveRole } from '@/hooks/useActiveRole';
-import { Head, Link, router, usePage } from '@inertiajs/react';
-import { useState } from 'react';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { z } from 'zod';
 import type { PageProps } from '@/types';
 
 const STATE_LABELS: Record<string, string> = {
@@ -23,10 +26,18 @@ const STATE_BADGE: Record<string, string> = {
     published: 'bg-primary/10 text-primary',
 };
 
+const TYPE_LABELS: Record<string, string> = { harian: 'Harian', uts: 'UTS', uas: 'UAS' };
+const TYPE_BADGE: Record<string, string> = {
+    harian: 'bg-surface-container text-on-surface-variant',
+    uts:    'bg-secondary-container text-on-secondary-container',
+    uas:    'bg-primary/10 text-primary',
+};
+
 interface Assessment {
     id: number;
     academic_year: string;
     semester: number;
+    type: string;
     state: string;
     classroom: { id: number; name: string };
     subject: { id: number; name: string; code: string };
@@ -34,6 +45,9 @@ interface Assessment {
     items_count: number;
     updated_at: string;
 }
+
+interface Classroom { id: number; name: string; academic_year: string }
+interface Subject   { id: number; code: string; name: string; classrooms: Classroom[] }
 
 interface Paginated {
     data: Assessment[];
@@ -48,15 +62,274 @@ interface Paginated {
 interface Props extends PageProps {
     assessments: Paginated;
     filters: { state?: string; academic_year?: string; semester?: string };
+    subjects?:   Subject[];
+    classrooms?: Classroom[];
+}
+
+// ── Assessment Types ──────────────────────────────────────────────────────
+const ASSESSMENT_TYPES = [
+    { value: 'harian', label: 'Harian', icon: 'edit_note', desc: 'Nilai tugas dan kegiatan sehari-hari' },
+    { value: 'uts',    label: 'UTS',    icon: 'quiz',      desc: 'Ujian Tengah Semester' },
+    { value: 'uas',    label: 'UAS',    icon: 'school',    desc: 'Ujian Akhir Semester' },
+] as const;
+
+const createSchema = z.object({
+    classroom_id:  z.string().min(1, 'Kelas wajib dipilih'),
+    subject_id:    z.string().min(1, 'Mata pelajaran wajib dipilih'),
+    academic_year: z.string().regex(/^\d{4}\/\d{4}$/, 'Format: YYYY/YYYY'),
+    semester:      z.string().min(1, 'Semester wajib dipilih'),
+    type:          z.string().min(1, 'Jenis penilaian wajib dipilih'),
+});
+
+// ── Create Modal ──────────────────────────────────────────────────────────
+function CreateModal({ open, onClose, subjects, classrooms }: {
+    open: boolean;
+    onClose: () => void;
+    subjects: Subject[];
+    classrooms: Classroom[];
+}) {
+    const { context } = usePage<Props>().props;
+    const [zodErrors, setZodErrors] = useState<Record<string, string>>({});
+    const contextIsSet = !!context.academic_year && !!context.semester;
+
+    const { data, setData, post, processing, errors, reset } = useForm({
+        classroom_id:  '',
+        subject_id:    '',
+        academic_year: context.academic_year ?? '',
+        semester:      context.semester ? String(context.semester) : '',
+        type:          '',
+    });
+
+    // Reset form when modal opens
+    useEffect(() => {
+        if (open) {
+            reset();
+            setZodErrors({});
+            setData({
+                classroom_id:  '',
+                subject_id:    '',
+                academic_year: context.academic_year ?? '',
+                semester:      context.semester ? String(context.semester) : '',
+                type:          '',
+            });
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open]);
+
+    // Close on Escape
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+        if (open) document.addEventListener('keydown', handler);
+        return () => document.removeEventListener('keydown', handler);
+    }, [open, onClose]);
+
+    const availableClassrooms = data.subject_id
+        ? (subjects.find((s) => String(s.id) === data.subject_id)?.classrooms ?? [])
+        : classrooms;
+
+    const err = (field: string) => zodErrors[field] ?? errors[field as keyof typeof errors];
+
+    const onSubjectChange = (id: string) => {
+        setData((prev) => ({ ...prev, subject_id: id, classroom_id: '' }));
+    };
+
+    const onClassroomChange = (id: string) => {
+        setData('classroom_id', id);
+        const cls = availableClassrooms.find((c) => String(c.id) === id);
+        if (cls?.academic_year) setData('academic_year', cls.academic_year);
+    };
+
+    const submit = (e: FormEvent) => {
+        e.preventDefault();
+        const result = createSchema.safeParse(data);
+        if (!result.success) {
+            const errs: Record<string, string> = {};
+            result.error.issues.forEach((issue) => {
+                if (issue.path[0]) errs[String(issue.path[0])] = issue.message;
+            });
+            setZodErrors(errs);
+            return;
+        }
+        setZodErrors({});
+        post('/assessments');
+    };
+
+    if (!open) return null;
+
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+                onClick={onClose}
+            />
+
+            {/* Panel */}
+            <div className="relative z-10 w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-2xl bg-surface shadow-2xl">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-outline-variant px-6 py-5">
+                    <div>
+                        <h2 className="text-headline-md font-bold text-primary">Buat Penilaian Baru</h2>
+                        <p className="text-body-sm text-on-surface-variant">Pilih mapel, kelas, dan jenis penilaian.</p>
+                    </div>
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="flex h-9 w-9 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                    >
+                        <span className="material-symbols-outlined">close</span>
+                    </button>
+                </div>
+
+                <form onSubmit={submit} className="space-y-5 p-6">
+                    {/* Period badge */}
+                    {contextIsSet && (
+                        <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-4 py-2.5">
+                            <span className="material-symbols-outlined text-[18px] text-primary">calendar_month</span>
+                            <span className="text-body-sm text-on-surface">
+                                Periode: <strong>{context.academic_year} · Semester {context.semester}</strong>
+                            </span>
+                            <a href="/dashboard" className="ml-auto text-body-sm text-primary hover:underline">Ubah</a>
+                        </div>
+                    )}
+
+                    <FormField label="Mata Pelajaran" htmlFor="subject_id" error={err('subject_id')}>
+                        <SelectField id="subject_id" value={data.subject_id} onChange={(e) => onSubjectChange(e.target.value)}>
+                            <option value="">— Pilih Mapel —</option>
+                            {subjects.map((s) => (
+                                <option key={s.id} value={s.id}>[{s.code}] {s.name}</option>
+                            ))}
+                        </SelectField>
+                    </FormField>
+
+                    <FormField
+                        label="Kelas"
+                        htmlFor="classroom_id"
+                        error={err('classroom_id')}
+                        hint={data.subject_id && availableClassrooms.length === 0 ? 'Mapel ini belum diassign ke kelas manapun.' : undefined}
+                    >
+                        <SelectField
+                            id="classroom_id"
+                            value={data.classroom_id}
+                            onChange={(e) => onClassroomChange(e.target.value)}
+                            disabled={!data.subject_id}
+                        >
+                            <option value="">— Pilih Kelas —</option>
+                            {availableClassrooms.map((c) => (
+                                <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                        </SelectField>
+                    </FormField>
+
+                    {!contextIsSet && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <FormField label="Tahun Ajaran" htmlFor="academic_year" error={err('academic_year')} hint="YYYY/YYYY">
+                                <TextField
+                                    id="academic_year"
+                                    value={data.academic_year}
+                                    onChange={(e) => setData('academic_year', e.target.value)}
+                                    placeholder="2024/2025"
+                                />
+                            </FormField>
+                            <FormField label="Semester" htmlFor="semester" error={err('semester')}>
+                                <SelectField id="semester" value={data.semester} onChange={(e) => setData('semester', e.target.value)}>
+                                    <option value="">— Pilih —</option>
+                                    <option value="1">Semester 1</option>
+                                    <option value="2">Semester 2</option>
+                                </SelectField>
+                            </FormField>
+                        </div>
+                    )}
+
+                    {/* Type picker */}
+                    <div>
+                        <p className="mb-2 text-label-md font-semibold text-on-surface">
+                            Jenis Penilaian
+                            {err('type') && <span className="ml-2 text-label-sm font-normal text-error">{err('type')}</span>}
+                        </p>
+                        <div className="grid grid-cols-3 gap-3">
+                            {ASSESSMENT_TYPES.map((t) => (
+                                <button
+                                    key={t.value}
+                                    type="button"
+                                    onClick={() => setData('type', t.value)}
+                                    className={`flex flex-col items-center gap-1.5 rounded-xl border-2 px-3 py-4 text-center transition-all ${
+                                        data.type === t.value
+                                            ? 'border-primary bg-primary/10 text-primary'
+                                            : 'border-outline-variant bg-surface-container-low text-on-surface-variant hover:border-primary/40 hover:bg-primary/5'
+                                    }`}
+                                >
+                                    <span className="material-symbols-outlined text-[24px]">{t.icon}</span>
+                                    <span className="text-label-lg font-bold">{t.label}</span>
+                                    <span className="text-label-sm leading-snug opacity-80">{t.desc}</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-3 border-t border-outline-variant pt-5">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="rounded-lg border border-outline-variant px-5 py-2.5 text-button font-semibold text-on-surface-variant transition-colors hover:bg-surface-container-high"
+                        >
+                            Batal
+                        </button>
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-button font-semibold text-on-primary shadow-sm transition-all hover:brightness-110 disabled:opacity-60"
+                        >
+                            {processing && <span className="material-symbols-outlined animate-spin text-[18px]">progress_activity</span>}
+                            <span className="material-symbols-outlined text-[18px]">add</span>
+                            Buat & Input Nilai
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 }
 
 export default function AssessmentsIndex() {
-    const { assessments, filters } = usePage<Props>().props;
+    const { assessments, filters, subjects = [], classrooms = [] } = usePage<Props>().props;
     const { active } = useActiveRole();
+    const { confirm, dialog } = useConfirm();
+    const [createOpen, setCreateOpen] = useState(false);
 
     const [state, setState] = useState(filters.state ?? '');
     const [year, setYear] = useState(filters.academic_year ?? '');
     const [semester, setSemester] = useState(filters.semester ?? '');
+
+    const importRef     = useRef<HTMLInputElement>(null);
+    const [uploadTarget, setUploadTarget] = useState<Assessment | null>(null);
+
+    const openImport = (a: Assessment) => {
+        setUploadTarget(a);
+        importRef.current?.click();
+    };
+
+    const handleFileSelected = (file: File) => {
+        if (!uploadTarget) return;
+        const target = uploadTarget;
+        setUploadTarget(null);
+        confirm({
+            title: 'Upload nilai dari Excel?',
+            message: `Nilai untuk ${target.subject.name} — ${target.classroom.name} (${TYPE_LABELS[target.type] ?? target.type}) akan diperbarui.`,
+            tone: 'primary',
+            icon: 'upload_file',
+            confirmLabel: 'Upload & Perbarui',
+            onConfirm: (done) => {
+                const fd = new FormData();
+                fd.append('scores_file', file);
+                router.post(`/assessments/${target.id}/scores/import`, fd, {
+                    onSuccess: () => { router.reload({ only: ['assessments'] }); done(); },
+                    onError: done,
+                });
+            },
+        });
+    };
 
     const applyFilter = (params: object) => {
         router.get('/assessments', { state, academic_year: year, semester, ...params }, {
@@ -73,6 +346,23 @@ export default function AssessmentsIndex() {
     return (
         <AuthenticatedLayout header="Penilaian">
             <Head title="Penilaian" />
+            {dialog}
+            <CreateModal
+                open={createOpen}
+                onClose={() => setCreateOpen(false)}
+                subjects={subjects}
+                classrooms={classrooms}
+            />
+            <input
+                ref={importRef}
+                type="file"
+                accept=".xlsx,.xls"
+                className="hidden"
+                onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) { handleFileSelected(file); e.target.value = ''; }
+                }}
+            />
 
             <PageHero
                 icon="assessment"
@@ -80,13 +370,14 @@ export default function AssessmentsIndex() {
                 subtitle="Kelola progres santri, lacak milestone kurikulum, dan publikasikan hasil penilaian."
                 action={
                     active === 'guru_mapel' && (
-                        <Link
-                            href="/assessments/create"
+                        <button
+                            type="button"
+                            onClick={() => setCreateOpen(true)}
                             className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-5 py-2.5 text-button font-semibold text-on-primary backdrop-blur-sm transition-all hover:bg-white/25"
                         >
                             <span className="material-symbols-outlined">add</span>
                             Buat Penilaian
-                        </Link>
+                        </button>
                     )
                 }
             />
@@ -172,8 +463,11 @@ export default function AssessmentsIndex() {
                                                 <span className="text-body-base text-on-surface">{a.subject.name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4 text-body-sm text-on-surface-variant">
-                                            {a.academic_year} · Sem {a.semester}
+                                        <td className="px-6 py-4">
+                                            <div className="text-body-sm text-on-surface-variant">{a.academic_year} · Sem {a.semester}</div>
+                                            <span className={`mt-1 inline-flex items-center rounded-full px-2 py-0.5 text-label-caps ${TYPE_BADGE[a.type] ?? ''}`}>
+                                                {TYPE_LABELS[a.type] ?? a.type}
+                                            </span>
                                         </td>
                                         <td className="px-6 py-4 text-body-sm text-on-surface-variant">
                                             {a.teacher.name}
@@ -196,13 +490,33 @@ export default function AssessmentsIndex() {
                                                     <span className="material-symbols-outlined text-[20px]">visibility</span>
                                                 </Link>
                                                 {(a.state === 'draft' || a.state === 'rejected') && active === 'guru_mapel' && (
-                                                    <Link
-                                                        href={`/assessments/${a.id}/edit`}
-                                                        className="flex h-9 w-9 items-center justify-center rounded-lg text-outline transition-all hover:bg-tertiary/10 hover:text-tertiary"
-                                                        aria-label="Edit"
-                                                    >
-                                                        <span className="material-symbols-outlined text-[20px]">edit_square</span>
-                                                    </Link>
+                                                    <>
+                                                        <a
+                                                            href={`/assessments/${a.id}/scores/template`}
+                                                            className="flex h-9 w-9 items-center justify-center rounded-lg text-outline transition-all hover:bg-primary/5 hover:text-primary"
+                                                            aria-label="Download template nilai"
+                                                            title="Download template nilai"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">download</span>
+                                                        </a>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => openImport(a)}
+                                                            className="flex h-9 w-9 items-center justify-center rounded-lg text-outline transition-all hover:bg-secondary/10 hover:text-secondary"
+                                                            aria-label="Upload nilai dari Excel"
+                                                            title="Upload nilai dari Excel"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">upload_file</span>
+                                                        </button>
+                                                        <Link
+                                                            href={`/assessments/${a.id}/edit`}
+                                                            className="flex h-9 w-9 items-center justify-center rounded-lg text-outline transition-all hover:bg-tertiary/10 hover:text-tertiary"
+                                                            aria-label="Edit"
+                                                            title="Edit nilai manual"
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">edit_square</span>
+                                                        </Link>
+                                                    </>
                                                 )}
                                             </div>
                                         </td>

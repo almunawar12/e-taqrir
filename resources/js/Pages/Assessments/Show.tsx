@@ -39,10 +39,13 @@ interface Approval {
     user: { id: number; name: string };
 }
 
+const TYPE_LABELS: Record<string, string> = { harian: 'Harian', uts: 'UTS', uas: 'UAS' };
+
 interface Assessment {
     id: number;
     academic_year: string;
     semester: number;
+    type: string;
     state: string;
     evidence_path: string | null;
     evidence_name: string | null;
@@ -239,7 +242,7 @@ export default function AssessmentShow() {
                                 </h1>
                             </div>
                             <p className="text-body-sm text-on-surface-variant">
-                                {assessment.classroom.name} · {assessment.academic_year} · Semester {assessment.semester}
+                                {assessment.classroom.name} · {assessment.academic_year} · Semester {assessment.semester} · {TYPE_LABELS[assessment.type] ?? assessment.type}
                             </p>
                         </div>
                     </div>

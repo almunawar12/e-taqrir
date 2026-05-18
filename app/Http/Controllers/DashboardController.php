@@ -20,7 +20,7 @@ class DashboardController extends Controller
 
         $stats = match ($role) {
             'super_admin' => $this->adminStats(),
-            'wali_kelas'  => $this->waliKelasStats($user),
+            'wali_kelas'  => $this->waliKelasStats(),
             'guru_mapel'  => $this->guruStats($user),
             'wali_santri' => $this->waliSantriStats(),
             default       => [],
@@ -43,7 +43,7 @@ class DashboardController extends Controller
         $recentAssessments = Assessment::with(['classroom:id,name', 'subject:id,name,code', 'teacher:id,name'])
             ->orderByDesc('updated_at')
             ->limit(5)
-            ->get(['id', 'classroom_id', 'subject_id', 'teacher_id', 'state', 'academic_year', 'semester', 'updated_at']);
+            ->get(['id', 'classroom_id', 'subject_id', 'teacher_id', 'state', 'academic_year', 'semester', 'type', 'updated_at']);
 
         return [
             'totals' => [
@@ -63,7 +63,7 @@ class DashboardController extends Controller
         ];
     }
 
-    private function waliKelasStats(mixed $user): array
+    private function waliKelasStats(): array
     {
         $pendingVerification = Assessment::where('state', 'submitted')->count();
         $verified            = Assessment::where('state', 'verified')->count();
@@ -73,7 +73,7 @@ class DashboardController extends Controller
             ->whereIn('state', ['submitted', 'verified'])
             ->orderBy('submitted_at')
             ->limit(8)
-            ->get(['id', 'classroom_id', 'subject_id', 'teacher_id', 'state', 'academic_year', 'semester', 'submitted_at']);
+            ->get(['id', 'classroom_id', 'subject_id', 'teacher_id', 'state', 'academic_year', 'semester', 'type', 'submitted_at']);
 
         return [
             'pending_verification' => $pendingVerification,
@@ -95,7 +95,7 @@ class DashboardController extends Controller
             ->where('teacher_id', $user->id)
             ->orderByDesc('updated_at')
             ->limit(8)
-            ->get(['id', 'classroom_id', 'subject_id', 'state', 'academic_year', 'semester', 'updated_at']);
+            ->get(['id', 'classroom_id', 'subject_id', 'state', 'academic_year', 'semester', 'type', 'updated_at']);
 
         return [
             'by_state' => [

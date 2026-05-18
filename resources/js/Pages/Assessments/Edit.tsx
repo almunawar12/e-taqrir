@@ -1,7 +1,7 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { useConfirm } from '@/hooks/useConfirm';
 import { Head, router, usePage } from '@inertiajs/react';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useRef, useState } from 'react';
 import { FilePond, registerPlugin } from 'react-filepond';
 import FilePondPluginFileValidateType from 'filepond-plugin-file-validate-type';
 import FilePondPluginFileValidateSize from 'filepond-plugin-file-validate-size';
@@ -29,10 +29,13 @@ interface Approval {
     user: { id: number; name: string };
 }
 
+const TYPE_LABELS: Record<string, string> = { harian: 'Harian', uts: 'UTS', uas: 'UAS' };
+
 interface Assessment {
     id: number;
     academic_year: string;
     semester: number;
+    type: string;
     state: string;
     comment: string | null;
     evidence_path: string | null;
@@ -75,6 +78,8 @@ export default function AssessmentEdit() {
     );
     const [saving, setSaving] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const importRef      = useRef<HTMLInputElement>(null);
+    const [importError, setImportError] = useState<string | null>(null);
     const [submitComment, setSubmitComment] = useState('');
     const [evidenceName, setEvidenceName] = useState<string | null>(assessment.evidence_name);
     const [pondFiles, setPondFiles] = useState<unknown[]>([]);
@@ -136,6 +141,25 @@ export default function AssessmentEdit() {
         });
     };
 
+    const handleImport = (file: File) => {
+        setImportError(null);
+        confirm({
+            title: 'Upload nilai dari Excel?',
+            message: 'Nilai dan catatan akan diperbarui sesuai isi file. Data yang sudah ada akan ditimpa.',
+            tone: 'primary',
+            icon: 'upload_file',
+            confirmLabel: 'Upload & Perbarui',
+            onConfirm: (done) => {
+                const fd = new FormData();
+                fd.append('scores_file', file);
+                router.post(`/assessments/${assessment.id}/scores/import`, fd, {
+                    onSuccess: () => { router.reload({ only: ['assessment'] }); done(); },
+                    onError: (errs) => { setImportError(String(errs.scores_file ?? 'Upload gagal.')); done(); },
+                });
+            },
+        });
+    };
+
     const isRejected = assessment.state === 'rejected';
     const lastRejection = isRejected
         ? [...assessment.approvals].reverse().find((a) => a.to_state === 'rejected')
@@ -166,7 +190,7 @@ export default function AssessmentEdit() {
                                 </h1>
                             </div>
                             <p className="text-body-sm text-on-surface-variant">
-                                {assessment.classroom.name} · {assessment.academic_year} · Semester {assessment.semester}
+                                {assessment.classroom.name} · {assessment.academic_year} · Semester {assessment.semester} · {TYPE_LABELS[assessment.type] ?? assessment.type}
                             </p>
                         </div>
                     </div>
@@ -192,11 +216,38 @@ export default function AssessmentEdit() {
 
                 {/* Score input table */}
                 <form onSubmit={handleSave} className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-sm">
-                    <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-6 py-4">
-                        <h3 className="text-headline-md text-on-surface">Daftar Nilai</h3>
-                        <span className="text-body-sm text-on-surface-variant">
-                            {assessment.items.length} santri
-                        </span>
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-6 py-4">
+                        <div>
+                            <h3 className="text-headline-md text-on-surface">Daftar Nilai</h3>
+                            <span className="text-body-sm text-on-surface-variant">{assessment.items.length} santri</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <a
+                                href={`/assessments/${assessment.id}/scores/template`}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-primary px-4 py-2 text-button font-semibold text-primary transition-colors hover:bg-primary/5"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">download</span>
+                                Download Template
+                            </a>
+                            <button
+                                type="button"
+                                onClick={() => importRef.current?.click()}
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-secondary-container px-4 py-2 text-button font-semibold text-on-secondary-container transition-colors hover:brightness-95"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">upload_file</span>
+                                Upload Excel
+                            </button>
+                            <input
+                                ref={importRef}
+                                type="file"
+                                accept=".xlsx,.xls"
+                                className="hidden"
+                                onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) { handleImport(file); e.target.value = ''; }
+                                }}
+                            />
+                        </div>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -263,6 +314,13 @@ export default function AssessmentEdit() {
                         </button>
                     </div>
                 </form>
+
+                {importError && (
+                    <div className="flex items-center gap-2 rounded-xl border border-error/20 bg-error-container/40 px-4 py-3 text-body-sm text-on-error-container">
+                        <span className="material-symbols-outlined text-error">error</span>
+                        {importError}
+                    </div>
+                )}
 
                 {/* Evidence upload */}
                 <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-sm">

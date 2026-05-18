@@ -5,11 +5,18 @@ import { FormEvent, useState } from 'react';
 import { z } from 'zod';
 import type { PageProps } from '@/types';
 
+const ASSESSMENT_TYPES = [
+    { value: 'harian', label: 'Harian',  icon: 'edit_note',  desc: 'Nilai tugas dan kegiatan sehari-hari' },
+    { value: 'uts',    label: 'UTS',     icon: 'quiz',       desc: 'Ujian Tengah Semester' },
+    { value: 'uas',    label: 'UAS',     icon: 'school',     desc: 'Ujian Akhir Semester' },
+] as const;
+
 const schema = z.object({
     classroom_id:  z.string().min(1, 'Kelas wajib dipilih'),
     subject_id:    z.string().min(1, 'Mata pelajaran wajib dipilih'),
     academic_year: z.string().regex(/^\d{4}\/\d{4}$/, 'Format: YYYY/YYYY'),
     semester:      z.string().min(1, 'Semester wajib dipilih'),
+    type:          z.string().min(1, 'Jenis penilaian wajib dipilih'),
 });
 
 interface Classroom { id: number; name: string; academic_year: string }
@@ -20,15 +27,18 @@ interface Props extends PageProps {
 }
 
 export default function AssessmentCreate() {
-    const { classrooms, subjects } = usePage<Props>().props;
+    const { classrooms, subjects, context } = usePage<Props>().props;
     const [zodErrors, setZodErrors] = useState<Record<string, string>>({});
 
     const { data, setData, post, processing, errors } = useForm({
         classroom_id:  '',
         subject_id:    '',
-        academic_year: '',
-        semester:      '',
+        academic_year: context.academic_year ?? '',
+        semester:      context.semester ? String(context.semester) : '',
+        type:          '',
     });
+
+    const contextIsSet = !!context.academic_year && !!context.semester;
 
     // classrooms filtered by selected subject's assigned classrooms
     const availableClassrooms = data.subject_id
@@ -82,6 +92,16 @@ export default function AssessmentCreate() {
                     </div>
                 </div>
 
+                {contextIsSet && (
+                    <div className="mb-6 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/5 px-5 py-3">
+                        <span className="material-symbols-outlined text-primary">calendar_month</span>
+                        <span className="text-body-sm text-on-surface">
+                            Periode: <strong>{context.academic_year} · Semester {context.semester}</strong>
+                        </span>
+                        <a href="/dashboard" className="ml-auto text-body-sm text-primary hover:underline">Ubah</a>
+                    </div>
+                )}
+
                 <form
                     onSubmit={submit}
                     className="space-y-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-8 shadow-sm"
@@ -114,27 +134,54 @@ export default function AssessmentCreate() {
                         </SelectField>
                     </FormField>
 
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                        <FormField label="Tahun Ajaran" htmlFor="academic_year" error={err('academic_year')} hint="Format: YYYY/YYYY">
-                            <TextField
-                                id="academic_year"
-                                value={data.academic_year}
-                                onChange={(e) => setData('academic_year', e.target.value)}
-                                placeholder="2024/2025"
-                            />
-                        </FormField>
+                    {!contextIsSet && (
+                        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <FormField label="Tahun Ajaran" htmlFor="academic_year" error={err('academic_year')} hint="Format: YYYY/YYYY">
+                                <TextField
+                                    id="academic_year"
+                                    value={data.academic_year}
+                                    onChange={(e) => setData('academic_year', e.target.value)}
+                                    placeholder="2024/2025"
+                                />
+                            </FormField>
 
-                        <FormField label="Semester" htmlFor="semester" error={err('semester')}>
-                            <SelectField
-                                id="semester"
-                                value={data.semester}
-                                onChange={(e) => setData('semester', e.target.value)}
-                            >
-                                <option value="">— Pilih Semester —</option>
-                                <option value="1">Semester 1</option>
-                                <option value="2">Semester 2</option>
-                            </SelectField>
-                        </FormField>
+                            <FormField label="Semester" htmlFor="semester" error={err('semester')}>
+                                <SelectField
+                                    id="semester"
+                                    value={data.semester}
+                                    onChange={(e) => setData('semester', e.target.value)}
+                                >
+                                    <option value="">— Pilih Semester —</option>
+                                    <option value="1">Semester 1</option>
+                                    <option value="2">Semester 2</option>
+                                </SelectField>
+                            </FormField>
+                        </div>
+                    )}
+
+                    <div>
+                        <p className="mb-2 text-label-md font-semibold text-on-surface">
+                            Jenis Penilaian
+                            {err('type') && <span className="ml-2 text-label-sm font-normal text-error">{err('type')}</span>}
+                        </p>
+                        <div className="grid grid-cols-3 gap-3">
+                            {ASSESSMENT_TYPES.map((t) => (
+                                <button
+                                    key={t.value}
+                                    type="button"
+                                    onClick={() => setData('type', t.value)}
+                                    className={`flex flex-col items-center gap-2 rounded-xl border-2 px-4 py-5 text-center transition-all ${
+                                        data.type === t.value
+                                            ? 'border-primary bg-primary/10 text-primary'
+                                            : 'border-outline-variant bg-surface-container-low text-on-surface-variant hover:border-primary/40 hover:bg-primary/5'
+                                    }`}
+                                >
+                                    <span className="material-symbols-outlined text-[28px]">{t.icon}</span>
+                                    <span className="text-label-lg font-bold">{t.label}</span>
+                                    <span className="text-label-sm leading-snug opacity-80">{t.desc}</span>
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     <FormActions cancelHref="/assessments" processing={processing} submitLabel="Buat & Input Nilai" />

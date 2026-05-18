@@ -1,15 +1,18 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PageHero from '@/Components/PageHero';
 import StatCard from '@/Components/StatCard';
-import { Head, Link, usePage } from '@inertiajs/react';
-import type { PageProps } from '@/types';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
+import type { ActiveContext, PageProps } from '@/types';
 
 // ── TYPES ──────────────────────────────────────────────────────────────────
+const TYPE_LABELS: Record<string, string> = { harian: 'Harian', uts: 'UTS', uas: 'UAS' };
+
 interface AssessmentRow {
     id: number;
     state: string;
     academic_year: string;
     semester: number;
+    type: string;
     classroom: { id: number; name: string };
     subject: { id: number; name: string; code: string };
     teacher?: { id: number; name: string };
@@ -125,7 +128,7 @@ function AssessmentTable({ rows, showTeacher = false }: { rows: AssessmentRow[];
                                 </span>{' '}
                                 <span className="text-on-surface-variant">{row.subject.name}</span>
                             </Td>
-                            <Td className="text-on-surface-variant">{row.academic_year} · Sem {row.semester}</Td>
+                            <Td className="text-on-surface-variant">{row.academic_year} · Sem {row.semester} · {TYPE_LABELS[row.type] ?? row.type}</Td>
                             {showTeacher && <Td className="text-on-surface-variant">{row.teacher?.name ?? '—'}</Td>}
                             <Td><StateBadge state={row.state} /></Td>
                             <Td>
@@ -181,6 +184,89 @@ function StateDistribution({ counts }: { counts: Record<string, number> }) {
     );
 }
 
+// ── CONTEXT PICKER ─────────────────────────────────────────────────────────
+function generateYears(): string[] {
+    const current = new Date().getFullYear();
+    return Array.from({ length: 5 }, (_, i) => {
+        const y = current - 2 + i;
+        return `${y}/${y + 1}`;
+    });
+}
+
+function ContextPicker({ context }: { context: ActiveContext }) {
+    const { data, setData, post, processing } = useForm({
+        academic_year: context.academic_year ?? '',
+        semester:      String(context.semester ?? ''),
+    });
+
+    const isSet = !!context.academic_year && !!context.semester;
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        post('/context');
+    };
+
+    return (
+        <div className={`mb-section-margin rounded-xl border p-5 ${
+            isSet
+                ? 'border-primary/30 bg-primary/5'
+                : 'border-tertiary-fixed-dim bg-tertiary-fixed/30'
+        }`}>
+            <div className="flex flex-wrap items-center gap-4">
+                <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary">calendar_month</span>
+                    <span className="text-body-base font-semibold text-on-surface">
+                        {isSet ? 'Periode Aktif' : 'Pilih Periode Terlebih Dahulu'}
+                    </span>
+                    {isSet && (
+                        <span className="rounded-full bg-primary px-3 py-0.5 text-label-caps font-bold text-on-primary">
+                            {context.academic_year} · Sem {context.semester}
+                        </span>
+                    )}
+                </div>
+
+                <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3 md:ml-auto">
+                    <select
+                        value={data.academic_year}
+                        onChange={(e) => setData('academic_year', e.target.value)}
+                        className="rounded-lg border border-outline-variant bg-surface px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                        <option value="">— Tahun Ajaran —</option>
+                        {generateYears().map((y) => (
+                            <option key={y} value={y}>{y}</option>
+                        ))}
+                    </select>
+
+                    <select
+                        value={data.semester}
+                        onChange={(e) => setData('semester', e.target.value)}
+                        className="rounded-lg border border-outline-variant bg-surface px-3 py-2 text-body-sm text-on-surface focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    >
+                        <option value="">— Semester —</option>
+                        <option value="1">Semester 1</option>
+                        <option value="2">Semester 2</option>
+                    </select>
+
+                    <button
+                        type="submit"
+                        disabled={processing || !data.academic_year || !data.semester}
+                        className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-button font-semibold text-on-primary transition-opacity hover:opacity-90 disabled:opacity-40"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">check</span>
+                        {isSet ? 'Ubah' : 'Terapkan'}
+                    </button>
+                </form>
+            </div>
+
+            {!isSet && (
+                <p className="mt-2 text-body-sm text-on-surface-variant">
+                    Periode aktif digunakan sebagai default saat membuat penilaian baru.
+                </p>
+            )}
+        </div>
+    );
+}
+
 // ── ROLE DASHBOARDS ────────────────────────────────────────────────────────
 function AdminDashboard({ stats, firstName }: { stats: AdminStats; firstName: string }) {
     return (
@@ -223,7 +309,7 @@ function AdminDashboard({ stats, firstName }: { stats: AdminStats; firstName: st
     );
 }
 
-function WaliKelasDashboard({ stats, firstName }: { stats: WaliKelasStats; firstName: string }) {
+function WaliKelasDashboard({ stats, firstName, context }: { stats: WaliKelasStats; firstName: string; context: ActiveContext }) {
     return (
         <>
             <PageHero
@@ -231,6 +317,8 @@ function WaliKelasDashboard({ stats, firstName }: { stats: WaliKelasStats; first
                 title={`Selamat datang, ${firstName}`}
                 subtitle="Verifikasi penilaian dari guru pengajar dan publikasikan hasil."
             />
+
+            <ContextPicker context={context} />
 
             <section className="mb-section-margin grid grid-cols-1 gap-card-gap md:grid-cols-3">
                 <StatCard label="Menunggu Verifikasi" value={stats.pending_verification} icon="pending"  tone="tertiary" />
@@ -254,7 +342,7 @@ function WaliKelasDashboard({ stats, firstName }: { stats: WaliKelasStats; first
     );
 }
 
-function GuruDashboard({ stats, firstName }: { stats: GuruStats; firstName: string }) {
+function GuruDashboard({ stats, firstName, context }: { stats: GuruStats; firstName: string; context: ActiveContext }) {
     const needsAction = (stats.by_state.draft ?? 0) + (stats.by_state.rejected ?? 0);
 
     return (
@@ -265,7 +353,7 @@ function GuruDashboard({ stats, firstName }: { stats: GuruStats; firstName: stri
                 subtitle="Input nilai santri dan ajukan penilaian untuk diverifikasi."
                 action={
                     <Link
-                        href="/assessments/create"
+                        href="/assessments"
                         className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-5 py-2.5 text-button font-semibold text-on-primary backdrop-blur-sm transition-all hover:bg-white/25"
                     >
                         <span className="material-symbols-outlined">add</span>
@@ -273,6 +361,8 @@ function GuruDashboard({ stats, firstName }: { stats: GuruStats; firstName: stri
                     </Link>
                 }
             />
+
+            <ContextPicker context={context} />
 
             <section className="mb-section-margin grid grid-cols-2 gap-card-gap lg:grid-cols-5">
                 <StatCard label="Draft"         value={stats.by_state.draft     ?? 0} tone="neutral" />
@@ -311,15 +401,15 @@ function WaliSantriDashboard() {
 
 // ── ROOT ───────────────────────────────────────────────────────────────────
 export default function Dashboard() {
-    const { stats, role, auth } = usePage<Props>().props;
+    const { stats, role, auth, context } = usePage<Props>().props;
     const firstName = auth.user.name.split(' ')[0];
 
     return (
         <AuthenticatedLayout header="Dashboard">
             <Head title="Dashboard" />
             {role === 'super_admin' && <AdminDashboard     stats={stats as AdminStats}     firstName={firstName} />}
-            {role === 'wali_kelas'  && <WaliKelasDashboard stats={stats as WaliKelasStats} firstName={firstName} />}
-            {role === 'guru_mapel'  && <GuruDashboard      stats={stats as GuruStats}      firstName={firstName} />}
+            {role === 'wali_kelas'  && <WaliKelasDashboard stats={stats as WaliKelasStats} firstName={firstName} context={context} />}
+            {role === 'guru_mapel'  && <GuruDashboard      stats={stats as GuruStats}      firstName={firstName} context={context} />}
             {role === 'wali_santri' && <WaliSantriDashboard />}
         </AuthenticatedLayout>
     );

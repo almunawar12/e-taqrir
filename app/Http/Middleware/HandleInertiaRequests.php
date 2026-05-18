@@ -38,6 +38,10 @@ class HandleInertiaRequests extends Middleware
                 'roles' => $user?->getRoleNames()->all() ?? [],
                 'active_role' => $user?->active_role,
             ],
+            'context' => [
+                'academic_year' => $user?->active_academic_year,
+                'semester'      => $user?->active_semester,
+            ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),

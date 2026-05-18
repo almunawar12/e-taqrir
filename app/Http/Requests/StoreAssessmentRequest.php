@@ -30,6 +30,7 @@ class StoreAssessmentRequest extends FormRequest
             'subject_id'    => ['required', $subjectRule],
             'academic_year' => ['required', 'string', 'regex:/^\d{4}\/\d{4}$/'],
             'semester'      => ['required', 'integer', Rule::in([1, 2])],
+            'type'          => ['required', 'string', Rule::in(['harian', 'uts', 'uas'])],
         ];
     }
 

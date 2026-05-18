@@ -23,6 +23,7 @@ class Assessment extends Model
         'teacher_id',
         'academic_year',
         'semester',
+        'type',
         'state',
         'comment',
         'submitted_at',
