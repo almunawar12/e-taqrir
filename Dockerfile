@@ -46,7 +46,7 @@ WORKDIR /var/www/html
 
 # Copy composer files first for layer caching
 COPY composer.json composer.lock ./
-RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist
+RUN composer install --no-dev --no-scripts --no-autoloader --prefer-dist --ignore-platform-reqs
 
 # Copy application code
 COPY . .
@@ -55,7 +55,7 @@ COPY . .
 COPY --from=node-builder /app/public/build ./public/build
 
 # Finalize composer autoloader
-RUN composer dump-autoload --optimize --no-dev
+RUN composer dump-autoload --optimize --no-dev --ignore-platform-reqs
 
 # Remove default nginx configs that listen on port 80
 RUN rm -rf /etc/nginx/http.d/* /etc/nginx/conf.d/*
