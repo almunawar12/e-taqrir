@@ -35,8 +35,8 @@ interface Assessment {
     id: number;
     academic_year: string;
     semester: number;
-    type: string;
-    state: string;
+    type: 'harian' | 'uts' | 'uas' | 'final';
+    state: 'draft' | 'submitted' | 'verified' | 'rejected' | 'published';
     comment: string | null;
     evidence_path: string | null;
     evidence_name: string | null;

@@ -7,6 +7,7 @@ use App\Models\Assessment;
 use App\Models\Setting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -210,32 +211,35 @@ class AssessmentFinalController extends Controller
                 $finalAsmt->refresh();
             }
             abort_if(!$finalAsmt->isDraft(), 422, 'Nilai akhir sudah diajukan atau dalam proses verifikasi.');
-        } else {
-            $finalAsmt->teacher_id = $user->id;
-            $finalAsmt->save();
         }
 
-        // Upsert final score items
         $wh = $weights['harian'] / 100;
         $wu = $weights['uts']    / 100;
         $wa = $weights['uas']    / 100;
 
-        foreach ($studentMap as $studentId => $student) {
-            $nh  = $scoreMap[$studentId]['harian'] ?? null;
-            $nts = $scoreMap[$studentId]['uts']    ?? null;
-            $nas = $scoreMap[$studentId]['uas']    ?? null;
+        DB::transaction(function () use ($finalAsmt, $user, $comment, $studentMap, $scoreMap, $wh, $wu, $wa) {
+            if (! $finalAsmt->exists) {
+                $finalAsmt->teacher_id = $user->id;
+                $finalAsmt->save();
+            }
 
-            $finalScore = ($nh !== null && $nts !== null && $nas !== null)
-                ? round($nh * $wh + $nts * $wu + $nas * $wa, 2)
-                : null;
+            foreach ($studentMap as $studentId => $_) {
+                $nh  = $scoreMap[$studentId]['harian'] ?? null;
+                $nts = $scoreMap[$studentId]['uts']    ?? null;
+                $nas = $scoreMap[$studentId]['uas']    ?? null;
 
-            $finalAsmt->items()->updateOrCreate(
-                ['student_id' => $studentId],
-                ['score' => $finalScore, 'notes' => null],
-            );
-        }
+                $finalScore = ($nh !== null && $nts !== null && $nas !== null)
+                    ? round($nh * $wh + $nts * $wu + $nas * $wa, 2)
+                    : null;
 
-        $this->service->submit($finalAsmt, $user, $comment);
+                $finalAsmt->items()->updateOrCreate(
+                    ['student_id' => $studentId],
+                    ['score' => $finalScore, 'notes' => null],
+                );
+            }
+
+            $this->service->submit($finalAsmt, $user, $comment);
+        });
 
         return back()->with('success', 'Nilai akhir berhasil diajukan ke wali kelas.');
     }

@@ -99,32 +99,29 @@ class AssessmentController extends Controller
         $data = $request->validated();
         $data['teacher_id'] = $request->user()->id;
 
-        // enforce unique constraint
-        $exists = Assessment::where([
-            'classroom_id'  => $data['classroom_id'],
-            'subject_id'    => $data['subject_id'],
-            'academic_year' => $data['academic_year'],
-            'semester'      => $data['semester'],
-            'type'          => $data['type'],
-        ])->exists();
+        try {
+            $assessment = DB::transaction(function () use ($data) {
+                $assessment = Assessment::create($data);
 
-        if ($exists) {
-            return back()->withErrors(['type' => 'Penilaian jenis ini untuk kelas, mapel, dan semester sudah ada.']);
+                $students = Student::where('classroom_id', $data['classroom_id'])->get('id');
+                $items = $students->map(fn($s) => [
+                    'assessment_id' => $assessment->id,
+                    'student_id'    => $s->id,
+                    'score'         => null,
+                    'notes'         => null,
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
+                ]);
+                DB::table('assessment_items')->insert($items->toArray());
+
+                return $assessment;
+            });
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23000') {
+                return back()->withErrors(['type' => 'Penilaian jenis ini untuk kelas, mapel, dan semester sudah ada.']);
+            }
+            throw $e;
         }
-
-        $assessment = Assessment::create($data);
-
-        // pre-populate items for all students in classroom
-        $students = Student::where('classroom_id', $data['classroom_id'])->get('id');
-        $items = $students->map(fn($s) => [
-            'assessment_id' => $assessment->id,
-            'student_id'    => $s->id,
-            'score'         => null,
-            'notes'         => null,
-            'created_at'    => now(),
-            'updated_at'    => now(),
-        ]);
-        DB::table('assessment_items')->insert($items->toArray());
 
         return redirect()->route('assessments.edit', $assessment)
             ->with('success', 'Assessment dibuat. Silakan input nilai.');

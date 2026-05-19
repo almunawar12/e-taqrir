@@ -78,7 +78,11 @@ class EvidenceController extends Controller
 
         // S3: redirect to temporary signed URL (5 min expiry)
         if ($driver === 's3') {
-            return redirect($disk->temporaryUrl($assessment->evidence_path, now()->addMinutes(5)));
+            try {
+                return redirect($disk->temporaryUrl($assessment->evidence_path, now()->addMinutes(5)));
+            } catch (\Exception $e) {
+                abort(503, 'Berkas tidak dapat diakses saat ini.');
+            }
         }
 
         // Local: stream file directly

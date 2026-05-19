@@ -45,8 +45,8 @@ interface Assessment {
     id: number;
     academic_year: string;
     semester: number;
-    type: string;
-    state: string;
+    type: 'harian' | 'uts' | 'uas' | 'final';
+    state: 'draft' | 'submitted' | 'verified' | 'rejected' | 'published';
     evidence_path: string | null;
     evidence_name: string | null;
     classroom: { id: number; name: string };
@@ -86,13 +86,15 @@ const TRANSITION_META: Record<string, TransitionMeta> = {
 function ActionPanel({ assessment, can }: { assessment: Assessment; can: Can }) {
     const [comment, setComment] = useState('');
     const [loading, setLoading] = useState(false);
+    const [rejectError, setRejectError] = useState(false);
     const { confirm, dialog } = useConfirm();
 
     const doTransition = (action: keyof typeof TRANSITION_META) => {
         if (action === 'reject' && !comment.trim()) {
-            alert('Alasan penolakan wajib diisi.');
+            setRejectError(true);
             return;
         }
+        setRejectError(false);
         const meta = TRANSITION_META[action];
         confirm({
             ...meta,
@@ -119,10 +121,13 @@ function ActionPanel({ assessment, can }: { assessment: Assessment; can: Can }) 
                 <textarea
                     rows={3}
                     value={comment}
-                    onChange={(e) => setComment(e.target.value)}
+                    onChange={(e) => { setComment(e.target.value); if (rejectError) setRejectError(false); }}
                     placeholder={can.reject ? 'Catatan / alasan penolakan (wajib jika tolak)' : 'Catatan (opsional)'}
-                    className="mt-4 block w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-2.5 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
+                    className={`mt-4 block w-full rounded-lg border bg-surface-container-lowest px-4 py-2.5 text-body-sm focus:ring-2 focus:ring-primary/20 ${rejectError ? 'border-error focus:border-error' : 'border-outline-variant focus:border-primary'}`}
                 />
+                {rejectError && (
+                    <p className="mt-1 text-label-sm text-error">Alasan penolakan wajib diisi.</p>
+                )}
                 <div className="mt-4 flex flex-wrap gap-3">
                     {can.verify && (
                         <button

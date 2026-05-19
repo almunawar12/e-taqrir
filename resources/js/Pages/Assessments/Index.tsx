@@ -37,8 +37,8 @@ interface Assessment {
     id: number;
     academic_year: string;
     semester: number;
-    type: string;
-    state: string;
+    type: 'harian' | 'uts' | 'uas' | 'final';
+    state: 'draft' | 'submitted' | 'verified' | 'rejected' | 'published';
     classroom: { id: number; name: string };
     subject: { id: number; name: string; code: string };
     teacher: { id: number; name: string };
@@ -304,6 +304,7 @@ export default function AssessmentsIndex() {
 
     const importRef     = useRef<HTMLInputElement>(null);
     const [uploadTarget, setUploadTarget] = useState<Assessment | null>(null);
+    const [importError, setImportError] = useState<string | null>(null);
 
     const openImport = (a: Assessment) => {
         setUploadTarget(a);
@@ -324,8 +325,8 @@ export default function AssessmentsIndex() {
                 const fd = new FormData();
                 fd.append('scores_file', file);
                 router.post(`/assessments/${target.id}/scores/import`, fd, {
-                    onSuccess: () => { router.reload({ only: ['assessments'] }); done(); },
-                    onError: done,
+                    onSuccess: () => { setImportError(null); router.reload({ only: ['assessments'] }); done(); },
+                    onError: (errs) => { setImportError(String(errs.scores_file ?? 'Upload gagal.')); done(); },
                 });
             },
         });
@@ -381,6 +382,16 @@ export default function AssessmentsIndex() {
                     )
                 }
             />
+
+            {importError && (
+                <div className="mb-4 flex items-center gap-2 rounded-xl border border-error/20 bg-error-container/40 px-4 py-3 text-body-sm text-on-error-container">
+                    <span className="material-symbols-outlined text-error">error</span>
+                    {importError}
+                    <button type="button" onClick={() => setImportError(null)} className="ml-auto">
+                        <span className="material-symbols-outlined text-[18px]">close</span>
+                    </button>
+                </div>
+            )}
 
             {/* Stats */}
             <section className="mb-section-margin grid grid-cols-2 gap-card-gap lg:grid-cols-4">
