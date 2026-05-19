@@ -22,11 +22,14 @@ class UserFactory extends Factory
      *
      * @return array<string, mixed>
      */
+    private static int $seq = 1;
+
     public function definition(): array
     {
+        $seq = self::$seq++;
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'name' => 'User ' . $seq,
+            'email' => 'user' . $seq . '@etaqrir.test',
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
