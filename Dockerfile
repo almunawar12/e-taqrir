@@ -18,6 +18,8 @@ RUN apk add --no-cache \
     libjpeg-turbo-dev \
     freetype-dev \
     libzip-dev \
+    libxml2-dev \
+    icu-dev \
     zip \
     unzip \
     git \
@@ -34,7 +36,13 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
         bcmath \
         gd \
         zip \
-        opcache
+        opcache \
+        xml \
+        dom \
+        simplexml \
+        xmlreader \
+        xmlwriter \
+        intl
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
