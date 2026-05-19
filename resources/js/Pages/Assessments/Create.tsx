@@ -1,5 +1,6 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
-import { FormActions, FormField, SelectField, TextField } from '@/Components/FormField';
+import { FormActions, FormField, TextField } from '@/Components/FormField';
+import { Select } from '@/Components/Select';
 import { Head, useForm, usePage } from '@inertiajs/react';
 import { FormEvent, useState } from 'react';
 import { z } from 'zod';
@@ -107,31 +108,27 @@ export default function AssessmentCreate() {
                     className="space-y-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-8 shadow-sm"
                 >
                     <FormField label="Mata Pelajaran" htmlFor="subject_id" error={err('subject_id')}>
-                        <SelectField
+                        <Select
                             id="subject_id"
                             value={data.subject_id}
-                            onChange={(e) => onSubjectChange(e.target.value)}
-                        >
-                            <option value="">— Pilih Mapel —</option>
-                            {subjects.map((s) => (
-                                <option key={s.id} value={s.id}>[{s.code}] {s.name}</option>
-                            ))}
-                        </SelectField>
+                            onChange={onSubjectChange}
+                            placeholder="— Pilih Mapel —"
+                            searchable
+                            options={subjects.map((s) => ({ value: String(s.id), label: `[${s.code}] ${s.name}` }))}
+                        />
                     </FormField>
 
                     <FormField label="Kelas" htmlFor="classroom_id" error={err('classroom_id')}
                         hint={data.subject_id && availableClassrooms.length === 0 ? 'Mapel ini belum diassign ke kelas manapun.' : undefined}>
-                        <SelectField
+                        <Select
                             id="classroom_id"
                             value={data.classroom_id}
-                            onChange={(e) => onClassroomChange(e.target.value)}
+                            onChange={onClassroomChange}
+                            placeholder="— Pilih Kelas —"
                             disabled={!data.subject_id}
-                        >
-                            <option value="">— Pilih Kelas —</option>
-                            {availableClassrooms.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </SelectField>
+                            searchable
+                            options={availableClassrooms.map((c) => ({ value: String(c.id), label: c.name }))}
+                        />
                     </FormField>
 
                     {!contextIsSet && (
@@ -146,15 +143,16 @@ export default function AssessmentCreate() {
                             </FormField>
 
                             <FormField label="Semester" htmlFor="semester" error={err('semester')}>
-                                <SelectField
+                                <Select
                                     id="semester"
                                     value={data.semester}
-                                    onChange={(e) => setData('semester', e.target.value)}
-                                >
-                                    <option value="">— Pilih Semester —</option>
-                                    <option value="1">Semester 1</option>
-                                    <option value="2">Semester 2</option>
-                                </SelectField>
+                                    onChange={(val) => setData('semester', val)}
+                                    placeholder="— Pilih Semester —"
+                                    options={[
+                                        { value: '1', label: 'Semester 1' },
+                                        { value: '2', label: 'Semester 2' },
+                                    ]}
+                                />
                             </FormField>
                         </div>
                     )}

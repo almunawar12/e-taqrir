@@ -2,7 +2,8 @@ import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import PageHero from '@/Components/PageHero';
 import Pagination from '@/Components/Pagination';
 import StatCard from '@/Components/StatCard';
-import { FormField, SelectField, TextField } from '@/Components/FormField';
+import { FormField, TextField } from '@/Components/FormField';
+import { Select } from '@/Components/Select';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useActiveRole } from '@/hooks/useActiveRole';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
@@ -194,12 +195,14 @@ function CreateModal({ open, onClose, subjects, classrooms }: {
                     )}
 
                     <FormField label="Mata Pelajaran" htmlFor="subject_id" error={err('subject_id')}>
-                        <SelectField id="subject_id" value={data.subject_id} onChange={(e) => onSubjectChange(e.target.value)}>
-                            <option value="">— Pilih Mapel —</option>
-                            {subjects.map((s) => (
-                                <option key={s.id} value={s.id}>[{s.code}] {s.name}</option>
-                            ))}
-                        </SelectField>
+                        <Select
+                            id="subject_id"
+                            value={data.subject_id}
+                            onChange={onSubjectChange}
+                            placeholder="— Pilih Mapel —"
+                            searchable
+                            options={subjects.map((s) => ({ value: String(s.id), label: `[${s.code}] ${s.name}` }))}
+                        />
                     </FormField>
 
                     <FormField
@@ -208,17 +211,15 @@ function CreateModal({ open, onClose, subjects, classrooms }: {
                         error={err('classroom_id')}
                         hint={data.subject_id && availableClassrooms.length === 0 ? 'Mapel ini belum diassign ke kelas manapun.' : undefined}
                     >
-                        <SelectField
+                        <Select
                             id="classroom_id"
                             value={data.classroom_id}
-                            onChange={(e) => onClassroomChange(e.target.value)}
+                            onChange={onClassroomChange}
+                            placeholder="— Pilih Kelas —"
                             disabled={!data.subject_id}
-                        >
-                            <option value="">— Pilih Kelas —</option>
-                            {availableClassrooms.map((c) => (
-                                <option key={c.id} value={c.id}>{c.name}</option>
-                            ))}
-                        </SelectField>
+                            searchable
+                            options={availableClassrooms.map((c) => ({ value: String(c.id), label: c.name }))}
+                        />
                     </FormField>
 
                     {!contextIsSet && (
@@ -232,11 +233,16 @@ function CreateModal({ open, onClose, subjects, classrooms }: {
                                 />
                             </FormField>
                             <FormField label="Semester" htmlFor="semester" error={err('semester')}>
-                                <SelectField id="semester" value={data.semester} onChange={(e) => setData('semester', e.target.value)}>
-                                    <option value="">— Pilih —</option>
-                                    <option value="1">Semester 1</option>
-                                    <option value="2">Semester 2</option>
-                                </SelectField>
+                                <Select
+                                    id="semester"
+                                    value={data.semester}
+                                    onChange={(val) => setData('semester', val)}
+                                    placeholder="— Pilih —"
+                                    options={[
+                                        { value: '1', label: 'Semester 1' },
+                                        { value: '2', label: 'Semester 2' },
+                                    ]}
+                                />
                             </FormField>
                         </div>
                     )}
@@ -405,16 +411,16 @@ export default function AssessmentsIndex() {
                 <div className="flex flex-col items-stretch justify-between gap-4 border-b border-outline-variant p-6 md:flex-row md:items-center">
                     <div className="flex flex-wrap items-center gap-3">
                         <h3 className="text-headline-md text-on-surface">Daftar Penilaian</h3>
-                        <select
+                        <Select
+                            size="sm"
                             value={state}
-                            onChange={(e) => { setState(e.target.value); applyFilter({ state: e.target.value }); }}
-                            className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-body-sm text-on-surface-variant transition-colors hover:border-primary"
-                        >
-                            <option value="">Semua status</option>
-                            {Object.entries(STATE_LABELS).map(([k, v]) => (
-                                <option key={k} value={k}>{v}</option>
-                            ))}
-                        </select>
+                            onChange={(val) => { setState(val); applyFilter({ state: val }); }}
+                            options={[
+                                { value: '', label: 'Semua status' },
+                                ...Object.entries(STATE_LABELS).map(([k, v]) => ({ value: k, label: v })),
+                            ]}
+                            className="w-40"
+                        />
                         <input
                             type="text"
                             placeholder="Tahun ajaran"
@@ -423,15 +429,17 @@ export default function AssessmentsIndex() {
                             onKeyDown={(e) => e.key === 'Enter' && applyFilter({ academic_year: year })}
                             className="w-40 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
                         />
-                        <select
+                        <Select
+                            size="sm"
                             value={semester}
-                            onChange={(e) => { setSemester(e.target.value); applyFilter({ semester: e.target.value }); }}
-                            className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-1.5 text-body-sm text-on-surface-variant transition-colors hover:border-primary"
-                        >
-                            <option value="">Semua semester</option>
-                            <option value="1">Semester 1</option>
-                            <option value="2">Semester 2</option>
-                        </select>
+                            onChange={(val) => { setSemester(val); applyFilter({ semester: val }); }}
+                            options={[
+                                { value: '', label: 'Semua semester' },
+                                { value: '1', label: 'Semester 1' },
+                                { value: '2', label: 'Semester 2' },
+                            ]}
+                            className="w-40"
+                        />
                     </div>
                 </div>
 

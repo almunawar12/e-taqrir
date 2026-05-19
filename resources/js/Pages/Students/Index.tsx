@@ -3,7 +3,8 @@ import CrudModal from '@/Components/CrudModal';
 import PageHero from '@/Components/PageHero';
 import Pagination from '@/Components/Pagination';
 import StatCard from '@/Components/StatCard';
-import { FormField, SelectField, TextArea, TextField } from '@/Components/FormField';
+import { FormField, TextArea, TextField } from '@/Components/FormField';
+import { Select } from '@/Components/Select';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useActiveRole } from '@/hooks/useActiveRole';
 import { Head, router, useForm, usePage } from '@inertiajs/react';
@@ -100,10 +101,15 @@ function StudentForm({ student, onClose }: { student?: Student; onClose: () => v
                         <TextField id="nis" value={data.nis} onChange={(e) => setData('nis', e.target.value)} placeholder="2024001" />
                     </FormField>
                     <FormField label="Jenis Kelamin" htmlFor="gender" error={err('gender')}>
-                        <SelectField id="gender" value={data.gender} onChange={(e) => setData('gender', e.target.value as 'L' | 'P')}>
-                            <option value="L">Laki-laki</option>
-                            <option value="P">Perempuan</option>
-                        </SelectField>
+                        <Select
+                            id="gender"
+                            value={data.gender}
+                            onChange={(val) => setData('gender', val as 'L' | 'P')}
+                            options={[
+                                { value: 'L', label: 'Laki-laki' },
+                                { value: 'P', label: 'Perempuan' },
+                            ]}
+                        />
                     </FormField>
                 </div>
                 <FormField label="Nama Lengkap" htmlFor="name" error={err('name')}>
@@ -304,14 +310,17 @@ export default function StudentsIndex() {
                         <p className="text-body-sm text-on-surface-variant">{students.total.toLocaleString('id-ID')} santri terdaftar.</p>
                     </div>
                     <div className="flex flex-wrap items-center gap-3">
-                        <select
+                        <Select
+                            size="sm"
                             value={classroomId}
-                            onChange={(e) => { setClassroomId(e.target.value); applyFilter({ classroom_id: e.target.value }); }}
-                            className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2 text-body-sm focus:border-primary focus:ring-2 focus:ring-primary/20"
-                        >
-                            <option value="">Semua kelas</option>
-                            {classrooms.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                        </select>
+                            onChange={(val) => { setClassroomId(val); applyFilter({ classroom_id: val }); }}
+                            searchable
+                            options={[
+                                { value: '', label: 'Semua kelas' },
+                                ...classrooms.map((c) => ({ value: String(c.id), label: c.name })),
+                            ]}
+                            className="w-44"
+                        />
                         <div className="relative">
                             <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
                             <input

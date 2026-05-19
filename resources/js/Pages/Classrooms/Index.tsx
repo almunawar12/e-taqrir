@@ -3,7 +3,8 @@ import CrudModal from '@/Components/CrudModal';
 import PageHero from '@/Components/PageHero';
 import Pagination from '@/Components/Pagination';
 import StatCard from '@/Components/StatCard';
-import { FormField, SelectField, TextField } from '@/Components/FormField';
+import { FormField, TextField } from '@/Components/FormField';
+import { Select } from '@/Components/Select';
 import { useConfirm } from '@/hooks/useConfirm';
 import { useActiveRole } from '@/hooks/useActiveRole';
 import { Head, Link, router, useForm, usePage } from '@inertiajs/react';
@@ -125,16 +126,14 @@ function ClassroomForm({
             </FormField>
 
             <FormField label="Wali Kelas" htmlFor="homeroom_teacher_id" error={err('homeroom_teacher_id')}>
-                <SelectField
+                <Select
                     id="homeroom_teacher_id"
                     value={data.homeroom_teacher_id}
-                    onChange={(e) => setData('homeroom_teacher_id', e.target.value)}
-                >
-                    <option value="">— Belum ditentukan —</option>
-                    {teachers.map((t) => (
-                        <option key={t.id} value={t.id}>{t.name}</option>
-                    ))}
-                </SelectField>
+                    onChange={(val) => setData('homeroom_teacher_id', val)}
+                    placeholder="— Belum ditentukan —"
+                    searchable
+                    options={teachers.map((t) => ({ value: String(t.id), label: t.name }))}
+                />
             </FormField>
 
             <div className="flex items-center justify-end gap-3 border-t border-outline-variant pt-5">
