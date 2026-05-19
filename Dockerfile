@@ -54,6 +54,9 @@ COPY --from=node-builder /app/public/build ./public/build
 # Finalize composer autoloader
 RUN composer dump-autoload --optimize --no-dev
 
+# Remove default nginx configs that listen on port 80
+RUN rm -rf /etc/nginx/http.d/* /etc/nginx/conf.d/*
+
 # Copy config files
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
