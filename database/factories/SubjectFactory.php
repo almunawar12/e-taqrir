@@ -35,7 +35,7 @@ class SubjectFactory extends Factory
             'code' => $code,
             'name' => $pick['name'],
             'category' => $pick['category'],
-            'credit_hours' => $this->faker->randomElement([2, 2, 2, 3, 4]),
+            'credit_hours' => [2, 2, 2, 3, 4][array_rand([2, 2, 2, 3, 4])],
         ];
     }
 }
