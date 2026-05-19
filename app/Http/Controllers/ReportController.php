@@ -8,6 +8,7 @@ use App\Models\Classroom;
 use App\Models\Setting;
 use App\Models\Student;
 use Illuminate\Http\Request;
+
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -108,6 +109,11 @@ class ReportController extends Controller
 
         $weights = Setting::weights();
 
+        $school           = Setting::schoolProfile();
+        $school['logo_url'] = $school['logo_path']
+            ? '/storage/' . $school['logo_path']
+            : null;
+
         // Load all source assessments for this classroom/period
         $assessments = Assessment::with(['subject:id,name,code', 'teacher:id,name'])
             ->where('classroom_id',  $classroom->id)
@@ -183,6 +189,7 @@ class ReportController extends Controller
             'year'      => $year,
             'semester'  => $semester,
             'weights'   => $weights,
+            'school'    => $school,
         ]);
     }
 }

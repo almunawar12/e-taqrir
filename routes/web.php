@@ -5,6 +5,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssessmentFinalController;
 use App\Http\Controllers\BobotController;
 use App\Http\Controllers\ContextController;
+use App\Http\Controllers\SchoolSettingController;
 use App\Http\Controllers\ScoreImportController;
 use App\Http\Controllers\ClassroomController;
 use App\Http\Controllers\EvidenceController;
@@ -62,6 +63,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('bobot',  [BobotController::class, 'index'])->name('bobot.index');
     Route::put('bobot',  [BobotController::class, 'update'])->name('bobot.update');
+
+    Route::get('pengaturan/sekolah',         [SchoolSettingController::class, 'index'])->name('pengaturan.sekolah.index');
+    Route::put('pengaturan/sekolah',         [SchoolSettingController::class, 'update'])->name('pengaturan.sekolah.update');
+    Route::post('pengaturan/sekolah/logo',   [SchoolSettingController::class, 'uploadLogo'])->name('pengaturan.sekolah.logo');
+    Route::delete('pengaturan/sekolah/logo', [SchoolSettingController::class, 'destroyLogo'])->name('pengaturan.sekolah.logo.destroy');
 
     // Raport
     Route::get('raport',                                    [ReportController::class, 'index'])->name('raport.index');

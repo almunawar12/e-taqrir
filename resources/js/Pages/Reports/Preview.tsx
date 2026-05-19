@@ -11,6 +11,19 @@ interface SubjectScore {
     na:  number | null;
 }
 
+interface SchoolProfile {
+    name:         string;
+    foundation:   string;
+    address:      string;
+    city:         string;
+    postal_code:  string;
+    phone:        string;
+    email:        string;
+    website:      string;
+    logo_url:     string | null;
+    opening_text: string;
+}
+
 interface Props extends PageProps {
     classroom: {
         id: number;
@@ -31,6 +44,7 @@ interface Props extends PageProps {
     year:      string | null;
     semester:  number;
     weights:   { harian: number; uts: number; uas: number };
+    school:    SchoolProfile;
 }
 
 type PaperSize = 'a4' | 'f4';
@@ -57,7 +71,7 @@ function scoreColor(score: number | null): string {
 }
 
 export default function ReportPreview() {
-    const { classroom, student, subjects, year, semester, weights } = usePage<Props>().props;
+    const { classroom, student, subjects, year, semester, weights, school } = usePage<Props>().props;
     const [paper, setPaper] = useState<PaperSize>('a4');
 
     const handlePrint = () => window.print();
@@ -112,17 +126,53 @@ export default function ReportPreview() {
             {/* Report card body */}
             <div className={`report-page mx-auto bg-white ${paper === 'a4' ? 'w-[210mm]' : 'w-[215.9mm]'} min-h-[297mm] px-[15mm] py-[12mm] pt-[70px] font-serif text-gray-900 print:pt-0`}>
 
-                {/* School header */}
-                <div className="mb-6 border-b-2 border-gray-800 pb-4 text-center">
-                    <p className="text-sm font-semibold uppercase tracking-widest text-gray-500">
-                        Pondok Pesantren Habiburrahman
-                    </p>
-                    <h1 className="mt-1 text-2xl font-bold uppercase tracking-wide text-gray-900">
+                {/* School header / Kop Raport */}
+                <div className="border-b-2 border-gray-800 pb-4">
+                    <div className="flex items-center gap-4">
+                        {school.logo_url && (
+                            <img
+                                src={school.logo_url}
+                                alt="Logo Sekolah"
+                                className="h-20 w-20 flex-shrink-0 object-contain"
+                                style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as React.CSSProperties}
+                            />
+                        )}
+                        <div className={school.logo_url ? 'text-left' : 'flex-1 text-center'}>
+                            {school.foundation && (
+                                <p className="text-xs uppercase tracking-widest text-gray-500">{school.foundation}</p>
+                            )}
+                            <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
+                                {school.name || 'Nama Pesantren'}
+                            </h2>
+                            {(school.address || school.city) && (
+                                <p className="text-xs text-gray-600">
+                                    {[school.address, school.city, school.postal_code].filter(Boolean).join(', ')}
+                                </p>
+                            )}
+                            {(school.phone || school.email || school.website) && (
+                                <p className="text-xs text-gray-500">
+                                    {[
+                                        school.phone   ? `Telp: ${school.phone}`  : null,
+                                        school.email   ? `Email: ${school.email}` : null,
+                                        school.website ? school.website            : null,
+                                    ].filter(Boolean).join(' | ')}
+                                </p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Judul + kata pembuka — di bawah garis kop */}
+                <div className="mb-6 mt-4 text-center">
+                    <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">
                         Laporan Hasil Belajar
                     </h1>
                     <p className="mt-0.5 text-sm text-gray-600">
                         Tahun Ajaran {year} · Semester {semester === 1 ? 'Ganjil (1)' : 'Genap (2)'}
                     </p>
+                    {school.opening_text && (
+                        <p className="mt-2 text-xs italic text-gray-500">{school.opening_text}</p>
+                    )}
                 </div>
 
                 {/* Student info */}
@@ -220,18 +270,6 @@ export default function ReportPreview() {
                     </button>
                 </div>
 
-                {/* Grade legend */}
-                <div className="mt-4 flex gap-4 text-xs text-gray-500">
-                    <span>A ≥ 90</span>
-                    <span>B ≥ 80</span>
-                    <span>C ≥ 70</span>
-                    <span>D ≥ 60</span>
-                    <span>E &lt; 60</span>
-                    <span className="ml-4 italic">
-                        NA = (NH×{weights.harian}%) + (NTS×{weights.uts}%) + (NAS×{weights.uas}%)
-                    </span>
-                </div>
-
                 {/* Signature section */}
                 <div className="mt-10 grid grid-cols-3 gap-8 text-center text-sm">
                     <div>
@@ -255,6 +293,12 @@ export default function ReportPreview() {
                     .no-print { display: none !important; }
                     body { margin: 0; padding: 0; }
                     .report-page { width: 100% !important; padding: 0 !important; margin: 0 !important; }
+                    img {
+                        -webkit-print-color-adjust: exact;
+                        print-color-adjust: exact;
+                        display: block !important;
+                        max-width: 100% !important;
+                    }
                 }
             `}</style>
         </>
