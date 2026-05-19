@@ -61,7 +61,7 @@ export default function RekapShow() {
                 absences: Object.fromEntries(
                     Object.entries(absences).map(([id, v]) => [
                         id,
-                        { sakit: parseInt(v.sakit) || 0, izin: parseInt(v.izin) || 0, alpha: parseInt(v.alpha) || 0 },
+                        { sakit: parseInt(v.sakit) || 0, izin: parseInt(v.izin) || 0, alpha: parseInt(v.alpha) || 0, notes: v.notes },
                     ])
                 ),
             },

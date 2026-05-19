@@ -169,6 +169,39 @@ class ReportController extends Controller
             ->sortBy('subject.name')
             ->values();
 
+        // ── Ranking ────────────────────────────────────────────────────────────
+        $allStudentIds = $classroom->students()->pluck('id');
+        $allItems      = AssessmentItem::whereIn('student_id', $allStudentIds)
+            ->whereIn('assessment_id', $assessments->pluck('id'))
+            ->get()
+            ->groupBy('student_id');
+
+        $subjectGroups = $assessments->groupBy('subject_id');
+
+        $avgPerStudent = $allStudentIds->map(function ($sid) use ($allItems, $subjectGroups, $wh, $wu, $wa) {
+            $items = ($allItems[$sid] ?? collect())->keyBy('assessment_id');
+            $naList = $subjectGroups->map(function ($group) use ($items, $wh, $wu, $wa) {
+                $byType  = $group->keyBy('type');
+                $harianA = $byType->get('harian');
+                $utsA    = $byType->get('uts');
+                $uasA    = $byType->get('uas');
+                $nh  = ($harianA && isset($items[$harianA->id]) && $items[$harianA->id]->score !== null) ? (float) $items[$harianA->id]->score : null;
+                $nts = ($utsA    && isset($items[$utsA->id])    && $items[$utsA->id]->score    !== null) ? (float) $items[$utsA->id]->score    : null;
+                $nas = ($uasA    && isset($items[$uasA->id])    && $items[$uasA->id]->score    !== null) ? (float) $items[$uasA->id]->score    : null;
+                return ($nh !== null && $nts !== null && $nas !== null)
+                    ? round($nh * $wh + $nts * $wu + $nas * $wa, 2) : null;
+            })->filter()->values();
+            return ['id' => $sid, 'avg' => $naList->isNotEmpty() ? round($naList->avg(), 4) : null];
+        })
+        ->filter(fn ($r) => $r['avg'] !== null)
+        ->sortByDesc('avg')
+        ->values();
+
+        $rankPos       = $avgPerStudent->search(fn ($r) => $r['id'] === $student->id);
+        $rank          = $rankPos !== false ? $rankPos + 1 : null;
+        $totalStudents = $allStudentIds->count();
+        // ────────────────────────────────────────────────────────────────────────
+
         $classroom->load('homeroomTeacher:id,name');
 
         $absence = StudentAbsence::where('student_id', $student->id)
@@ -213,6 +246,8 @@ class ReportController extends Controller
                 'notes' => $absence?->notes ?? '',
             ],
             'ekskul'    => $ekskul,
+            'rank'      => $rank,
+            'total_students' => $totalStudents,
         ]);
     }
 }

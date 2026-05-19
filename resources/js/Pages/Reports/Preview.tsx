@@ -47,8 +47,10 @@ interface Props extends PageProps {
     semester:  number;
     weights:   { harian: number; uts: number; uas: number };
     school:    SchoolProfile;
-    absence:   { sakit: number; izin: number; alpha: number; notes: string };
-    ekskul:    EkskulItem[];
+    absence:        { sakit: number; izin: number; alpha: number; notes: string };
+    ekskul:         EkskulItem[];
+    rank:           number | null;
+    total_students: number;
 }
 
 type PaperSize = 'a4' | 'f4';
@@ -133,7 +135,7 @@ function scoreColor(score: number | null): string {
 }
 
 export default function ReportPreview() {
-    const { classroom, student, subjects, year, semester, weights, school, absence, ekskul } = usePage<Props>().props;
+    const { classroom, student, subjects, year, semester, weights, school, absence, ekskul, rank, total_students } = usePage<Props>().props;
     const [paper, setPaper] = useState<PaperSize>('a4');
 
     const handlePrint = () => window.print();
@@ -253,8 +255,8 @@ export default function ReportPreview() {
                             </tr>
                         ))}
                     </tbody>
-                    {avgNA !== null && (
-                        <tfoot>
+                    <tfoot>
+                        {avgNA !== null && (
                             <tr className="bg-gray-100 font-semibold">
                                 <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right text-xs text-gray-700">
                                     Rata-rata Nilai Akhir
@@ -265,10 +267,18 @@ export default function ReportPreview() {
                                 <td className="border border-gray-300 px-3 py-2 text-center text-sm font-bold text-gray-700">
                                     {gradeLabel(avgNA)}
                                 </td>
-                                            <td className="border border-gray-300 px-3 py-2" />
+                                <td className="border border-gray-300 px-3 py-2" />
                             </tr>
-                        </tfoot>
-                    )}
+                        )}
+                        <tr className="bg-gray-50">
+                            <td colSpan={5} className="border border-gray-300 px-3 py-2 text-right text-xs font-semibold text-gray-700">
+                                Peringkat di Kelas
+                            </td>
+                            <td colSpan={3} className="border border-gray-300 px-3 py-2 text-center text-sm font-bold text-gray-900">
+                                {rank !== null ? `${rank} dari ${total_students} siswa` : '— (belum lengkap)'}
+                            </td>
+                        </tr>
+                    </tfoot>
                 </table>
 
                 {/* Print button — visible on screen, hidden when printing */}
