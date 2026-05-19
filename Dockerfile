@@ -37,11 +37,6 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
         gd \
         zip \
         opcache \
-        xml \
-        dom \
-        simplexml \
-        xmlreader \
-        xmlwriter \
         intl
 
 # Install Composer
