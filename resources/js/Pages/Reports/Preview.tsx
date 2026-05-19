@@ -24,6 +24,8 @@ interface SchoolProfile {
     opening_text: string;
 }
 
+interface EkskulItem { name: string; grade: string }
+
 interface Props extends PageProps {
     classroom: {
         id: number;
@@ -45,9 +47,69 @@ interface Props extends PageProps {
     semester:  number;
     weights:   { harian: number; uts: number; uas: number };
     school:    SchoolProfile;
+    absence:   { sakit: number; izin: number; alpha: number; notes: string };
+    ekskul:    EkskulItem[];
 }
 
 type PaperSize = 'a4' | 'f4';
+
+function PageHeader({ school, year, semester }: { school: SchoolProfile; year: string | null; semester: number }) {
+    return (
+        <>
+            <KopRaport school={school} />
+            <div className="mb-6 mt-4 text-center">
+                <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">
+                    Laporan Hasil Belajar
+                </h1>
+                <p className="mt-0.5 text-sm text-gray-600">
+                    Tahun Ajaran {year} · Semester {semester === 1 ? 'Ganjil (1)' : 'Genap (2)'}
+                </p>
+                {school.opening_text && (
+                    <p className="mt-2 text-xs italic text-gray-500">{school.opening_text}</p>
+                )}
+            </div>
+        </>
+    );
+}
+
+function KopRaport({ school }: { school: SchoolProfile }) {
+    return (
+        <div className="border-b-2 border-gray-800 pb-4">
+            <div className="flex items-center gap-4">
+                {school.logo_url && (
+                    <img
+                        src={school.logo_url}
+                        alt="Logo Sekolah"
+                        className="h-20 w-20 flex-shrink-0 object-contain"
+                        style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as React.CSSProperties}
+                    />
+                )}
+                <div className={school.logo_url ? 'text-left' : 'flex-1 text-center'}>
+                    {school.foundation && (
+                        <p className="text-xs uppercase tracking-widest text-gray-500">{school.foundation}</p>
+                    )}
+                    <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
+                        {school.name || 'Nama Pesantren'}
+                    </h2>
+                    {(school.address || school.city) && (
+                        <p className="text-xs text-gray-600">
+                            {[school.address, school.city, school.postal_code].filter(Boolean).join(', ')}
+                        </p>
+                    )}
+                    {(school.phone || school.email || school.website) && (
+                        <p className="text-xs text-gray-500">
+                            {[
+                                school.phone   ? `Telp: ${school.phone}`  : null,
+                                school.email   ? `Email: ${school.email}` : null,
+                                school.website ? school.website            : null,
+                            ].filter(Boolean).join(' | ')}
+                        </p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+}
 
 const PAPER_CSS: Record<PaperSize, string> = {
     a4: '@page { size: A4 portrait; margin: 15mm; }',
@@ -71,7 +133,7 @@ function scoreColor(score: number | null): string {
 }
 
 export default function ReportPreview() {
-    const { classroom, student, subjects, year, semester, weights, school } = usePage<Props>().props;
+    const { classroom, student, subjects, year, semester, weights, school, absence, ekskul } = usePage<Props>().props;
     const [paper, setPaper] = useState<PaperSize>('a4');
 
     const handlePrint = () => window.print();
@@ -124,56 +186,9 @@ export default function ReportPreview() {
             </div>
 
             {/* Report card body */}
-            <div className={`report-page mx-auto bg-white ${paper === 'a4' ? 'w-[210mm]' : 'w-[215.9mm]'} min-h-[297mm] px-[15mm] py-[12mm] pt-[70px] font-serif text-gray-900 print:pt-0`}>
+            <div className={`report-page mx-auto bg-white ${paper === 'a4' ? 'w-[210mm]' : 'w-[215.9mm]'} px-[15mm] py-[12mm] pt-[70px] font-serif text-gray-900 print:pt-0`}>
 
-                {/* School header / Kop Raport */}
-                <div className="border-b-2 border-gray-800 pb-4">
-                    <div className="flex items-center gap-4">
-                        {school.logo_url && (
-                            <img
-                                src={school.logo_url}
-                                alt="Logo Sekolah"
-                                className="h-20 w-20 flex-shrink-0 object-contain"
-                                style={{ printColorAdjust: 'exact', WebkitPrintColorAdjust: 'exact' } as React.CSSProperties}
-                            />
-                        )}
-                        <div className={school.logo_url ? 'text-left' : 'flex-1 text-center'}>
-                            {school.foundation && (
-                                <p className="text-xs uppercase tracking-widest text-gray-500">{school.foundation}</p>
-                            )}
-                            <h2 className="text-xl font-bold uppercase tracking-wide text-gray-900">
-                                {school.name || 'Nama Pesantren'}
-                            </h2>
-                            {(school.address || school.city) && (
-                                <p className="text-xs text-gray-600">
-                                    {[school.address, school.city, school.postal_code].filter(Boolean).join(', ')}
-                                </p>
-                            )}
-                            {(school.phone || school.email || school.website) && (
-                                <p className="text-xs text-gray-500">
-                                    {[
-                                        school.phone   ? `Telp: ${school.phone}`  : null,
-                                        school.email   ? `Email: ${school.email}` : null,
-                                        school.website ? school.website            : null,
-                                    ].filter(Boolean).join(' | ')}
-                                </p>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Judul + kata pembuka — di bawah garis kop */}
-                <div className="mb-6 mt-4 text-center">
-                    <h1 className="text-2xl font-bold uppercase tracking-wide text-gray-900">
-                        Laporan Hasil Belajar
-                    </h1>
-                    <p className="mt-0.5 text-sm text-gray-600">
-                        Tahun Ajaran {year} · Semester {semester === 1 ? 'Ganjil (1)' : 'Genap (2)'}
-                    </p>
-                    {school.opening_text && (
-                        <p className="mt-2 text-xs italic text-gray-500">{school.opening_text}</p>
-                    )}
-                </div>
+                <PageHeader school={school} year={year} semester={semester} />
 
                 {/* Student info */}
                 <div className="mb-6 grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
@@ -271,6 +286,99 @@ export default function ReportPreview() {
                 </div>
 
                 {/* Signature section */}
+                <div className="mt-10 grid grid-cols-3 gap-8 text-center text-sm">
+                    <div>
+                        <p className="text-gray-600">Mengetahui,</p>
+                        <p className="font-semibold">Orang Tua/Wali</p>
+                        <div className="mx-auto mt-12 h-px w-40 bg-gray-800" />
+                        <p className="mt-1 text-gray-500">( ........................... )</p>
+                    </div>
+                    <div />
+                    <div>
+                        <p className="text-gray-600">Wali Kelas,</p>
+                        <p className="font-semibold">{classroom.name}</p>
+                        <div className="mx-auto mt-12 h-px w-40 bg-gray-800" />
+                        <p className="mt-1 font-semibold">{classroom.homeroom_teacher ?? '—'}</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* ── Page 2 ─────────────────────────────────────────────────── */}
+            <div className={`report-page mx-auto bg-white ${paper === 'a4' ? 'w-[210mm]' : 'w-[215.9mm]'} break-before-page px-[15mm] py-[12mm] pt-[70px] font-serif text-gray-900 print:pt-0`}>
+
+                <PageHeader school={school} year={year} semester={semester} />
+
+                {/* Kehadiran */}
+                <section className="mb-8">
+                    <h3 className="mb-3 border-b border-gray-300 pb-1 text-sm font-bold uppercase tracking-wider text-gray-800">
+                        Rekap Kehadiran
+                    </h3>
+                    <table className="w-full border-collapse text-sm">
+                        <thead>
+                            <tr className="bg-gray-800 text-white">
+                                <th className="border border-gray-600 px-4 py-2 text-left text-xs font-semibold">Keterangan</th>
+                                <th className="border border-gray-600 px-4 py-2 text-center text-xs font-semibold">Sakit</th>
+                                <th className="border border-gray-600 px-4 py-2 text-center text-xs font-semibold">Izin</th>
+                                <th className="border border-gray-600 px-4 py-2 text-center text-xs font-semibold">Alpha</th>
+                                <th className="border border-gray-600 px-4 py-2 text-center text-xs font-semibold">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr className="bg-white">
+                                <td className="border border-gray-300 px-4 py-2 text-xs text-gray-700">Jumlah Hari Tidak Hadir</td>
+                                <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{absence.sakit}</td>
+                                <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{absence.izin}</td>
+                                <td className="border border-gray-300 px-4 py-2 text-center font-semibold">{absence.alpha}</td>
+                                <td className="border border-gray-300 px-4 py-2 text-center font-bold text-gray-900">
+                                    {absence.sakit + absence.izin + absence.alpha}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                {/* Ekskul */}
+                <section className="mb-8">
+                    <h3 className="mb-3 border-b border-gray-300 pb-1 text-sm font-bold uppercase tracking-wider text-gray-800">
+                        Kegiatan Ekstrakurikuler
+                    </h3>
+                    {ekskul.length === 0 ? (
+                        <p className="text-xs italic text-gray-400">— Tidak ada data ekstrakurikuler —</p>
+                    ) : (
+                        <table className="w-full border-collapse text-sm">
+                            <thead>
+                                <tr className="bg-gray-800 text-white">
+                                    <th className="w-10 border border-gray-600 px-3 py-2 text-center text-xs font-semibold">No</th>
+                                    <th className="border border-gray-600 px-4 py-2 text-left text-xs font-semibold">Kegiatan</th>
+                                    <th className="w-32 border border-gray-600 px-4 py-2 text-center text-xs font-semibold">Predikat</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {ekskul.map((e, idx) => (
+                                    <tr key={idx} className={idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                                        <td className="border border-gray-300 px-3 py-2 text-center text-xs text-gray-500">{idx + 1}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-gray-900">{e.name}</td>
+                                        <td className="border border-gray-300 px-4 py-2 text-center font-semibold text-gray-800">
+                                            {e.grade === 'A' ? 'A — Sangat Baik' : e.grade === 'B' ? 'B — Baik' : 'C — Cukup'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </section>
+
+                {/* Catatan wali kelas */}
+                <section className="mb-8">
+                    <h3 className="mb-3 border-b border-gray-300 pb-1 text-sm font-bold uppercase tracking-wider text-gray-800">
+                        Catatan Wali Kelas
+                    </h3>
+                    <div className="min-h-[60px] rounded border border-gray-300 px-4 py-3 text-sm text-gray-700">
+                        {absence.notes || ''}
+                    </div>
+                </section>
+
+                {/* Tanda tangan halaman 2 */}
                 <div className="mt-10 grid grid-cols-3 gap-8 text-center text-sm">
                     <div>
                         <p className="text-gray-600">Mengetahui,</p>

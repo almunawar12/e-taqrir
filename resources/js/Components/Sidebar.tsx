@@ -24,6 +24,8 @@ const NAV_ITEMS: NavItem[] = [
       roles: ['super_admin'] },
     { label: 'Raport',       href: '/raport',      icon: 'description',     routeName: 'raport.*',
       roles: ['super_admin', 'wali_kelas'] },
+    { label: 'Absensi & Ekskul', href: '/rekap',  icon: 'how_to_reg',      routeName: 'rekap.*',
+      roles: ['super_admin', 'wali_kelas'] },
     { label: 'Bobot Nilai',  href: '/bobot',            icon: 'tune',            routeName: 'bobot.*',
       roles: ['super_admin'] },
     { label: 'Identitas Sekolah', href: '/pengaturan/sekolah', icon: 'account_balance', routeName: 'pengaturan.sekolah.*',

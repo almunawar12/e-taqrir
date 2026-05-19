@@ -5,6 +5,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\AssessmentFinalController;
 use App\Http\Controllers\BobotController;
 use App\Http\Controllers\ContextController;
+use App\Http\Controllers\RekapController;
 use App\Http\Controllers\SchoolSettingController;
 use App\Http\Controllers\ScoreImportController;
 use App\Http\Controllers\ClassroomController;
@@ -63,6 +64,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('bobot',  [BobotController::class, 'index'])->name('bobot.index');
     Route::put('bobot',  [BobotController::class, 'update'])->name('bobot.update');
+
+    Route::get('rekap',                         [RekapController::class, 'index'])->name('rekap.index');
+    Route::get('rekap/{classroom}',             [RekapController::class, 'show'])->name('rekap.show');
+    Route::put('rekap/{classroom}/absensi',     [RekapController::class, 'saveAbsensi'])->name('rekap.absensi');
+    Route::put('rekap/{classroom}/ekskul',      [RekapController::class, 'saveEkskul'])->name('rekap.ekskul');
 
     Route::get('pengaturan/sekolah',         [SchoolSettingController::class, 'index'])->name('pengaturan.sekolah.index');
     Route::put('pengaturan/sekolah',         [SchoolSettingController::class, 'update'])->name('pengaturan.sekolah.update');

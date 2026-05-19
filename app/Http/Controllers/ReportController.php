@@ -7,6 +7,8 @@ use App\Models\AssessmentItem;
 use App\Models\Classroom;
 use App\Models\Setting;
 use App\Models\Student;
+use App\Models\StudentAbsence;
+use App\Models\StudentExtracurricular;
 use Illuminate\Http\Request;
 
 use Inertia\Inertia;
@@ -169,6 +171,20 @@ class ReportController extends Controller
 
         $classroom->load('homeroomTeacher:id,name');
 
+        $absence = StudentAbsence::where('student_id', $student->id)
+            ->where('classroom_id', $classroom->id)
+            ->where('academic_year', $year)
+            ->where('semester', $semester)
+            ->first();
+
+        $ekskul = StudentExtracurricular::where('student_id', $student->id)
+            ->where('classroom_id', $classroom->id)
+            ->where('academic_year', $year)
+            ->where('semester', $semester)
+            ->orderBy('sort_order')
+            ->get(['name', 'grade'])
+            ->toArray();
+
         return Inertia::render('Reports/Preview', [
             'classroom' => [
                 'id'               => $classroom->id,
@@ -190,6 +206,13 @@ class ReportController extends Controller
             'semester'  => $semester,
             'weights'   => $weights,
             'school'    => $school,
+            'absence'   => [
+                'sakit' => $absence?->sakit ?? 0,
+                'izin'  => $absence?->izin  ?? 0,
+                'alpha' => $absence?->alpha ?? 0,
+                'notes' => $absence?->notes ?? '',
+            ],
+            'ekskul'    => $ekskul,
         ]);
     }
 }
